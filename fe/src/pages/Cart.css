@@ -1,0 +1,123 @@
+.emptyCart{
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px dashed rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.02);
+}
+
+.emptyTitle{
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.cartLayout{
+  margin-top: 14px;
+  display:grid;
+  grid-template-columns: 1fr 320px;
+  gap: 14px;
+  align-items:start;
+}
+
+.cartList{
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.cartItem{
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  padding: 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 14px;
+}
+
+.cartInfo{
+  min-width: 0;
+}
+
+.cartName{
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.cartMeta{
+  margin-top: 6px;
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+
+.chip{
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+}
+
+.cartActions{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.qty{
+  width: 84px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(0,0,0,0.18);
+  color: var(--text);
+}
+
+.cartLineTotal{
+  min-width: 130px;
+  text-align:right;
+  font-weight: 900;
+}
+
+.cartSummary{
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.04);
+  padding: 14px;
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+  position: sticky;
+  top: 84px;
+}
+
+.summaryTitle{
+  font-weight: 900;
+  font-size: 16px;
+}
+
+.summaryRow{
+  display:flex;
+  justify-content:space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.summaryRow.total{
+  border-bottom: 0;
+  padding-top: 12px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+@media (max-width: 960px){
+  .cartLayout{ grid-template-columns: 1fr; }
+  .cartSummary{ position: static; }
+  .cartLineTotal{ min-width: auto; }
+}

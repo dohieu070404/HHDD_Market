@@ -1,0 +1,708 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  SELLER
+  ADMIN
+  CS
+}
+
+enum SellerKycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ShopStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  HIDDEN
+  BANNED
+}
+
+enum SKUStatus {
+  ACTIVE
+  HIDDEN
+}
+
+enum VoucherType {
+  PERCENT
+  FIXED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PLACED
+  CONFIRMED
+  PACKING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCEL_REQUESTED
+  CANCELLED
+  RETURN_REQUESTED
+  RETURN_APPROVED
+  RETURN_REJECTED
+  RETURN_RECEIVED
+  REFUND_REQUESTED
+  REFUNDED
+  DISPUTED
+}
+
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
+  MOCK_GATEWAY
+}
+
+enum PaymentStatus {
+  UNPAID
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+enum ShipmentStatus {
+  PENDING
+  READY_TO_SHIP
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+}
+
+enum RequestStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  RECEIVED
+  CLOSED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSING
+  SUCCESS
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ReviewStatus {
+  VISIBLE
+  HIDDEN
+}
+
+enum ReviewReportStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ShopAddressType {
+  PICKUP
+  RETURN
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String   @unique
+  name      String?
+  phone     String?
+  avatarUrl String?
+  password  String
+  role      UserRole @default(CUSTOMER)
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  addresses    Address[]
+  cart         Cart?
+  wishlist     WishlistItem[]
+  orders       Order[]
+  reviews      Review[]
+  sellerProfile SellerProfile?
+  shop         Shop?
+  notifications Notification[]
+  auditLogs    AuditLog[] @relation("AuditActor")
+  messages     ChatMessage[] @relation("ChatSender")
+  disputes     Dispute[]
+  reviewReports ReviewReport[] @relation("ReviewReportsByUser")
+
+  cancelRequests CancelRequest[] @relation("CancelRequestedBy")
+  returnRequests ReturnRequest[] @relation("ReturnRequestedBy")
+
+  cancelResolved CancelRequest[] @relation("CancelResolvedBy")
+  returnResolved ReturnRequest[] @relation("ReturnResolvedBy")
+  disputeResolved Dispute[] @relation("DisputeResolvedBy")
+  refundProcessed Refund[] @relation("RefundProcessedBy")
+
+  passwordResets PasswordResetToken[]
+}
+
+model Address {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName   String
+  phone      String
+  line1      String
+  line2      String?
+  ward       String?
+  district   String?
+  city       String?
+  province   String?
+  country    String   @default("VN")
+  postalCode String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SellerProfile {
+  id             Int             @id @default(autoincrement())
+  userId         Int             @unique
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         SellerKycStatus @default(PENDING)
+  shopName       String
+  phone          String?
+  taxId          String?
+  kycDocumentUrl String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+}
+
+model Shop {
+  id          Int        @id @default(autoincrement())
+  ownerId     Int        @unique
+  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String     @unique
+  description String?
+  logoUrl     String?
+  status      ShopStatus @default(PENDING)
+  ratingAvg   Float      @default(0)
+  ratingCount Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now()) @updatedAt
+
+  products        Product[]
+  orders          Order[]
+  reviews         Review[]
+  shopAddresses   ShopAddress[]
+  shippingConfigs ShippingConfig[]
+  payoutAccount   PayoutAccount?
+  reviewReplies   ReviewReply[]
+}
+
+model ShopAddress {
+  id         Int            @id @default(autoincrement())
+  shopId     Int
+  shop       Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  type       ShopAddressType @default(PICKUP)
+  fullName   String?
+  phone      String?
+  line1      String
+  line2      String?
+  ward       String?
+  district   String?
+  city       String?
+  province   String?
+  country    String         @default("VN")
+  postalCode String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([shopId])
+}
+
+model ShippingConfig {
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  carrier   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([shopId])
+}
+
+model PayoutAccount {
+  id                Int      @id @default(autoincrement())
+  shopId            Int      @unique
+  shop              Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  bankName          String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  parentId  Int?
+  parent    Category? @relation("CategoryParent", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryParent")
+  products  Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([parentId])
+}
+
+model Product {
+  id            Int           @id @default(autoincrement())
+  shopId        Int
+  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  categoryId    Int?
+  category      Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name          String
+  slug          String        @unique
+  description   String?
+  status        ProductStatus @default(ACTIVE)
+  price         Int
+  compareAtPrice Int?
+  thumbnailUrl  String?
+  ratingAvg     Float         @default(0)
+  ratingCount   Int           @default(0)
+  soldCount     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  images     ProductImage[]
+  skus       SKU[]
+  wishlist   WishlistItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([ratingAvg])
+  @@index([soldCount])
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int     @default(0)
+}
+
+model SKU {
+  id             Int       @id @default(autoincrement())
+  productId       Int
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  skuCode         String   @unique
+  name            String
+  attributesJson  String?
+  price           Int?
+  compareAtPrice  Int?
+  stock           Int      @default(0)
+  weightGram      Int?
+  status          SKUStatus @default(ACTIVE)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+}
+
+model WishlistItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  skuId     Int
+  sku       SKU      @relation(fields: [skuId], references: [id], onDelete: Cascade)
+  qty       Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([cartId, skuId])
+  @@index([cartId])
+  @@index([skuId])
+}
+
+model Voucher {
+  id          Int         @id @default(autoincrement())
+  code        String      @unique
+  type        VoucherType
+  value       Int
+  minSubtotal Int         @default(0)
+  maxDiscount Int?
+  startAt     DateTime?
+  endAt       DateTime?
+  usageLimit  Int?
+  usedCount   Int         @default(0)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  orders Order[]
+}
+
+model Order {
+  id           Int        @id @default(autoincrement())
+  code         String     @unique
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopId       Int
+  shop         Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  status       OrderStatus @default(PLACED)
+
+  subtotal     Int
+  shippingFee  Int        @default(0)
+  discount     Int        @default(0)
+  total        Int
+  currency     String     @default("VND")
+  note         String?
+
+  shipFullName String
+  shipPhone    String
+  shipLine1    String
+  shipLine2    String?
+  shipWard     String?
+  shipDistrict String?
+  shipCity     String?
+  shipProvince String?
+  shipCountry  String     @default("VN")
+  shipPostalCode String?
+
+  voucherId Int?
+  voucher   Voucher? @relation(fields: [voucherId], references: [id], onDelete: SetNull)
+
+  items               OrderItem[]
+  paymentTransactions Payment[]
+  shipment            Shipment?
+  cancelRequest       CancelRequest?
+  returnRequest       ReturnRequest?
+  refund              Refund?
+  dispute             Dispute?
+  thread              ChatThread?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  skuId     Int
+  sku       SKU      @relation(fields: [skuId], references: [id])
+  name      String
+  unitPrice Int
+  qty       Int
+  lineTotal Int
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([skuId])
+}
+
+model Payment {
+  id         Int          @id @default(autoincrement())
+  orderId    Int
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  method     PaymentMethod
+  status     PaymentStatus @default(UNPAID)
+  amount     Int
+  provider   String?
+  providerRef String?
+  paidAt     DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model Shipment {
+  id          Int          @id @default(autoincrement())
+  orderId     Int          @unique
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  carrier     String       @default("MOCK")
+  trackingCode String?     @unique
+  status      ShipmentStatus @default(PENDING)
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  events ShipmentEvent[]
+}
+
+model ShipmentEvent {
+  id         Int          @id @default(autoincrement())
+  shipmentId Int
+  shipment   Shipment     @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  status     ShipmentStatus
+  message    String?
+  location   String?
+  createdAt  DateTime @default(now())
+
+  @@index([shipmentId])
+}
+
+model CancelRequest {
+  id           Int          @id @default(autoincrement())
+  orderId      Int          @unique
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId       Int
+  user         User         @relation("CancelRequestedBy", fields: [userId], references: [id], onDelete: Cascade)
+  reason       String
+  status       RequestStatus @default(REQUESTED)
+  resolvedById Int?
+  resolvedBy   User?        @relation("CancelResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ReturnRequest {
+  id             Int          @id @default(autoincrement())
+  orderId        Int          @unique
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User         @relation("ReturnRequestedBy", fields: [userId], references: [id], onDelete: Cascade)
+  reason         String
+  status         ReturnStatus @default(REQUESTED)
+  evidenceUrlsJson String?
+  resolvedById   Int?
+  resolvedBy     User?        @relation("ReturnResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Refund {
+  id            Int          @id @default(autoincrement())
+  orderId       Int          @unique
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount        Int
+  reason        String?
+  status        RefundStatus @default(REQUESTED)
+  processedById Int?
+  processedBy   User?        @relation("RefundProcessedBy", fields: [processedById], references: [id])
+  provider      String?
+  providerRef   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([status])
+}
+
+model Dispute {
+  id            Int          @id @default(autoincrement())
+  orderId       Int          @unique
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String?
+  message       String
+  status        DisputeStatus @default(OPEN)
+  resolution    String?
+  resolvedById  Int?
+  resolvedBy    User?        @relation("DisputeResolvedBy", fields: [resolvedById], references: [id])
+  resolvedAt    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  @@index([status])
+}
+
+model ChatThread {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @unique
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  threadId  Int
+  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  Int
+  sender    User     @relation("ChatSender", fields: [senderId], references: [id], onDelete: Cascade)
+  message   String
+  createdAt DateTime @default(now())
+
+  @@index([threadId])
+  @@index([senderId])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId    Int?
+  shop      Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  rating    Int
+  content   String?
+  mediaUrlsJson String?
+  status    ReviewStatus @default(VISIBLE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  reports ReviewReport[]
+  replies ReviewReply[]
+
+  @@index([productId])
+  @@index([shopId])
+  @@index([status])
+  @@unique([userId, productId])
+  @@unique([userId, shopId])
+}
+
+model ReviewReply {
+  id        Int      @id @default(autoincrement())
+  reviewId  Int
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  shopId    Int
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([reviewId])
+  @@index([shopId])
+}
+
+model ReviewReport {
+  id         Int              @id @default(autoincrement())
+  reviewId   Int
+  review     Review           @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reporterId Int
+  reporter   User             @relation("ReviewReportsByUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reason     String
+  status     ReviewReportStatus @default(OPEN)
+  createdAt  DateTime @default(now())
+  resolvedAt DateTime?
+
+  @@index([reviewId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String?
+  dataJson  String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  actorId     Int?
+  actor       User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String?
+  metadataJson String?
+  createdAt   DateTime @default(now())
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id
+  valueJson String
+  updatedAt DateTime @default(now()) @updatedAt
+}
