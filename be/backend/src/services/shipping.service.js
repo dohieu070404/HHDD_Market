@@ -4,20 +4,25 @@ function genTrackingCode(prefix = "TRK") {
   return `${prefix}${Date.now()}${Math.random().toString(16).slice(2, 6)}`.toUpperCase();
 }
 
-async function createShipment(orderId, carrier = "MOCK") {
-  const trackingCode = genTrackingCode();
+/**
+ * Create a shipment record for an order.
+ * - carrier: string identifier (e.g. GHN, GHTK, J&T, MOCK)
+ * - trackingCode: optional; if omitted, a random mock code will be generated
+ */
+async function createShipment(orderId, carrier = "MOCK", trackingCode = null, db = prisma) {
+  const tracking = (trackingCode && trackingCode.toString().trim()) || genTrackingCode();
 
-  const shipment = await prisma.shipment.create({
+  const shipment = await db.shipment.create({
     data: {
       orderId,
       carrier,
-      trackingCode,
+      trackingCode: tracking,
       status: "SHIPPED",
       shippedAt: new Date(),
     },
   });
 
-  await prisma.shipmentEvent.create({
+  await db.shipmentEvent.create({
     data: {
       shipmentId: shipment.id,
       status: "SHIPPED",
@@ -28,8 +33,8 @@ async function createShipment(orderId, carrier = "MOCK") {
   return shipment;
 }
 
-async function updateShipmentStatus(shipmentId, status, message) {
-  const shipment = await prisma.shipment.update({
+async function updateShipmentStatus(shipmentId, status, message, db = prisma) {
+  const shipment = await db.shipment.update({
     where: { id: shipmentId },
     data: {
       status,
@@ -37,7 +42,7 @@ async function updateShipmentStatus(shipmentId, status, message) {
     },
   });
 
-  await prisma.shipmentEvent.create({
+  await db.shipmentEvent.create({
     data: {
       shipmentId,
       status,
