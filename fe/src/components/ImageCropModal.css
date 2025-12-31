@@ -1,0 +1,23 @@
+.crop-modal__zoom{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.crop-modal__zoomLabel{
+  font-size: 14px;
+}
+
+.crop-modal__zoomRange{
+  width: 220px;
+}
+
+@media (max-width: 520px){
+  .crop-modal__zoomRange{ width: 160px; }
+}
+
+.crop-modal__actions{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

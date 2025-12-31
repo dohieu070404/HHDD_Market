@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminApi } from "../../api/admin";
+import { useAuth } from "../../contexts/AuthContext";
+import { formatDate } from "../../utils/format";
+
+import "./AdminSellers.css";
 
 function StatusPill({ status }) {
   const map = {
-    PENDING: "Chờ duyệt",
-    APPROVED: "Đã duyệt",
-    REJECTED: "Từ chối",
+    PENDING: { label: "Chờ duyệt", cls: "badge badge--warning" },
+    APPROVED: { label: "Đã duyệt", cls: "badge badge--success" },
+    REJECTED: { label: "Từ chối", cls: "badge badge--danger" },
   };
-  const label = map[status] || status;
-  const cls =
-    status === "APPROVED"
-      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : status === "REJECTED"
-        ? "bg-rose-50 text-rose-700 border-rose-200"
-        : "bg-amber-50 text-amber-700 border-amber-200";
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${cls}`}>{label}</span>;
+  const v = map[status] || { label: status || "-", cls: "badge" };
+  return <span className={v.cls}>{v.label}</span>;
 }
 
 export default function AdminSellers() {
@@ -28,6 +26,7 @@ export default function AdminSellers() {
     setMsg(null);
     try {
       const res = await adminApi.listSellers(status);
+      if (!res?.success) throw new Error(res?.message || "Không tải được danh sách.");
       setItems(res.data || []);
     } catch (e) {
       setMsg(e.message || "Không tải được danh sách.");
@@ -36,8 +35,10 @@ export default function AdminSellers() {
     }
   }
 
+  const { user } = useAuth();
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   const countText = useMemo(() => `${items.length} hồ sơ`, [items]);
@@ -64,80 +65,96 @@ export default function AdminSellers() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="card p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="admin-sellers">
+      <header className="card admin-sellers__headerCard">
+        <div className="admin-sellers__header">
           <div>
-            <div className="text-lg font-semibold">Duyệt hồ sơ mở Shop</div>
-            <div className="text-sm text-slate-600">{countText}</div>
+            <div className="admin-sellers__title">Duyệt hồ sơ mở Shop</div>
+            <div className="admin-sellers__subtitle muted">{countText}</div>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-slate-600">Trạng thái</label>
-            <select className="input max-w-[200px]" value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="PENDING">PENDING</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="REJECTED">REJECTED</option>
+          <div className="admin-sellers__filters">
+            <label className="admin-sellers__filterLabel">Trạng thái</label>
+            <select className="select select-sm admin-sellers__select" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="PENDING">Chờ duyệt</option>
+              <option value="APPROVED">Đã duyệt</option>
+              <option value="REJECTED">Từ chối</option>
             </select>
           </div>
         </div>
-      </div>
+      </header>
 
-      {msg && <div className="card p-4 text-sm text-rose-700">{msg}</div>}
+      {msg ? <div className="alert alert--danger admin-sellers__alert">{msg}</div> : null}
 
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+      <div className="card admin-sellers__tableCard">
+        <div className="admin-sellers__tableWrap">
+          <table className="table table--tiki admin-sellers__table">
+            <thead>
               <tr>
-                <th className="px-4 py-3 text-left font-semibold">User</th>
-                <th className="px-4 py-3 text-left font-semibold">Shop</th>
-                <th className="px-4 py-3 text-left font-semibold">Phone</th>
-                <th className="px-4 py-3 text-left font-semibold">Tax ID</th>
-                <th className="px-4 py-3 text-left font-semibold">Status</th>
-                <th className="px-4 py-3 text-right font-semibold">Hành động</th>
+                <th>User</th>
+                <th>Shop</th>
+                <th>Phone</th>
+                <th>Tax ID</th>
+                <th>Status</th>
+                <th className="admin-sellers__thRight">Hành động</th>
               </tr>
             </thead>
-            <tbody className="divide-y">
+            <tbody>
               {loading ? (
                 <tr>
-                  <td className="px-4 py-6 text-slate-500" colSpan={6}>
+                  <td className="admin-sellers__tdMuted muted" colSpan={6}>
                     Đang tải...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-6 text-slate-500" colSpan={6}>
+                  <td className="admin-sellers__tdMuted muted" colSpan={6}>
                     Không có dữ liệu.
                   </td>
                 </tr>
               ) : (
                 items.map((it) => (
-                  <tr key={it.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{it.user?.username || it.user?.email}</div>
-                      <div className="text-xs text-slate-500">{it.user?.email}</div>
+                  <tr key={it.id} className="admin-sellers__row">
+                    <td>
+                      <div className="admin-sellers__userName">{it.user?.username || it.user?.email}</div>
+                      <div className="admin-sellers__userEmail muted">{it.user?.email}</div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{it.shop?.name}</div>
-                      <div className="text-xs text-slate-500">/{it.shop?.slug}</div>
+                    <td>
+                      <div className="admin-sellers__shopName">{it.shop?.name || it.shopName || "—"}</div>
+                      <div className="admin-sellers__shopSlug muted">/{it.shop?.slug || "—"}</div>
+
+                      {it.kycDocumentUrl ? (
+                        <a className="admin-sellers__kycLink" href={it.kycDocumentUrl} target="_blank" rel="noreferrer">
+                          Xem giấy tờ KYC
+                        </a>
+                      ) : null}
+
+                      {it.createdAt ? <div className="admin-sellers__createdAt muted">Gửi: {formatDate(it.createdAt)}</div> : null}
+
+                      {it.status === "REJECTED" && it.rejectedReason ? (
+                        <div className="admin-sellers__rejectReason">Lý do: {it.rejectedReason}</div>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-3">{it.phone || "—"}</td>
-                    <td className="px-4 py-3">{it.taxId || "—"}</td>
-                    <td className="px-4 py-3">
+                    <td>{it.phone || "—"}</td>
+                    <td>{it.taxId || "—"}</td>
+                    <td>
                       <StatusPill status={it.status} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="admin-sellers__tdRight">
                       {it.status === "PENDING" ? (
-                        <div className="inline-flex items-center gap-2">
-                          <button className="btn btn-primary" onClick={() => approve(it.userId)}>
-                            Duyệt
-                          </button>
-                          <button className="btn btn-ghost" onClick={() => reject(it.userId)}>
-                            Từ chối
-                          </button>
-                        </div>
+                        user?.role === "ADMIN" ? (
+                          <div className="admin-sellers__actions">
+                            <button className="btn-primary btn-sm" onClick={() => approve(it.userId)} type="button">
+                              Duyệt
+                            </button>
+                            <button className="btn-secondary btn-sm" onClick={() => reject(it.userId)} type="button">
+                              Từ chối
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="admin-sellers__noPermission muted">Chỉ Admin có quyền duyệt/từ chối</span>
+                        )
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="admin-sellers__dash muted">—</span>
                       )}
                     </td>
                   </tr>
@@ -147,6 +164,6 @@ export default function AdminSellers() {
           </table>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

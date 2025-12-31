@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./Auth.css";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -29,38 +30,44 @@ export default function Login() {
   }
 
   return (
-    <div className="container-page py-10">
-      <div className="mx-auto max-w-md card p-6">
-        <h1 className="text-xl font-semibold">Đăng nhập</h1>
-        <p className="muted text-sm mt-1">Chào mừng quay lại. Hãy đăng nhập để tiếp tục mua sắm.</p>
+    <div className="auth-page">
+      <div className="container-page auth-page__container">
+        <div className="card auth-card">
+          <h1 className="auth-card__title">Đăng nhập</h1>
+          <p className="muted auth-card__subtitle">Chào mừng quay lại. Hãy đăng nhập để tiếp tục mua sắm.</p>
 
-        {msg ? <div className="mt-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">{msg}</div> : null}
+          {msg ? <div className="auth-card__alert auth-card__alert--error">{msg}</div> : null}
 
-        <form className="mt-5 grid gap-3" onSubmit={submit}>
-          <div>
-            <div className="label mb-1">Email hoặc Username</div>
-            <input className="input" value={form.identifier} onChange={(e) => setForm({ ...form, identifier: e.target.value })} placeholder="email@example.com" />
-          </div>
-          <div>
-            <div className="label mb-1">Mật khẩu</div>
-            <input type="password" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          </div>
+          <form className="auth-form" onSubmit={submit}>
+            <div className="auth-form__field">
+              <div className="label auth-form__label">Email hoặc Username</div>
+            <input
+              className="input"
+              value={form.identifier}
+              onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+              placeholder="email@example.com"
+            />
+            </div>
+            <div className="auth-form__field">
+              <div className="label auth-form__label">Mật khẩu</div>
+            <input
+              type="password"
+              className="input"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            </div>
 
-          <button className="btn-primary" disabled={submitting}>
-            {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
-          </button>
-        </form>
+            <button className="btn-primary auth-form__submit" disabled={submitting}>
+              {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
+            </button>
+          </form>
 
-        <div className="mt-4 text-sm muted">
-          Chưa có tài khoản? <Link to="/register" className="underline">Đăng ký</Link>
-        </div>
-
-        <div className="mt-6 rounded-xl bg-slate-50 p-4 text-xs text-slate-700">
-          <div className="font-medium">Tài khoản demo (seed)</div>
-          <div className="mt-2 space-y-1">
-            <div><span className="font-medium">Customer:</span> customer@shop.local / Customer@123</div>
-            <div><span className="font-medium">Seller:</span> seller@shop.local / Seller@123</div>
-            <div><span className="font-medium">Admin:</span> admin@shop.local / Admin@123</div>
+          <div className="muted auth-card__footer">
+            Chưa có tài khoản?{" "}
+            <Link to="/register" className="auth-card__footerLink">
+              Đăng ký
+            </Link>
           </div>
         </div>
       </div>

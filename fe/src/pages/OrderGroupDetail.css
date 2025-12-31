@@ -1,0 +1,75 @@
+/* Order group detail */
+
+.order-group-page{ padding: 28px 0; }
+
+.order-group-page__container{ }
+
+.order-group-page__alert{ margin-top: 16px; }
+
+.order-group-page__back{ margin-top: 10px; }
+
+.order-group-loading{ padding: 20px; }
+
+.order-group-header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.order-group-header__label{ font-size: 12px; }
+
+.order-group-header__title{ font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+
+.order-group-header__meta{ margin-top: 6px; font-size: 13px; }
+
+.order-group-header__actions{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.order-group-summary{ margin-top: 14px; padding: 18px; }
+
+.order-group-summary__row{ display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.order-group-summary__label{ font-size: 12px; }
+
+.order-group-summary__value{ margin-top: 6px; }
+
+.order-group-summary__right{ text-align: right; }
+
+.order-group-summary__total{ margin-top: 6px; font-size: 18px; font-weight: 800; }
+
+.order-group-summary__time{ margin-top: 4px; font-size: 12px; }
+
+.order-group-orders{ margin-top: 20px; }
+
+.order-group-orders__title{ font-size: 13px; font-weight: 800; color: #334155; }
+
+.order-group-orders__list{ margin-top: 12px; display: grid; gap: 12px; }
+
+.order-child{ padding: 18px; }
+
+.order-child__head{ display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.order-child__label{ font-size: 12px; }
+
+.order-child__shop{ font-weight: 800; }
+
+.order-child__meta{ margin-top: 6px; font-size: 12px; }
+
+.order-child__right{ text-align: right; }
+
+.order-child__total{ margin-top: 8px; font-weight: 800; }
+
+.order-child__time{ margin-top: 4px; font-size: 12px; }
+
+.order-child__items{ margin-top: 14px; display: grid; gap: 8px; }
+
+.order-child__itemRow{ display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+.order-child__itemName{ min-width: 0; color: #334155; }
+
+.order-child__itemPrice{ font-size: 13px; }
+
+.order-child__more{ font-size: 12px; }
+
+.order-child__actions{ margin-top: 14px; display: flex; justify-content: flex-end; }

@@ -76,6 +76,7 @@ router.get(
     const status = (req.query.status || "").toString().trim();
     const where = {};
     if (status) where.status = status;
+
     const list = await prisma.sellerProfile.findMany({
       where,
       include: {
@@ -83,11 +84,26 @@ router.get(
       },
       orderBy: { createdAt: "desc" },
     });
-    res.json({ success: true, data: list });
+
+    // Join shop info (Shop.ownerId == SellerProfile.userId)
+    const ownerIds = list.map((p) => p.userId);
+    const shops = await prisma.shop.findMany({
+      where: { ownerId: { in: ownerIds } },
+      select: { id: true, ownerId: true, name: true, slug: true, status: true, createdAt: true },
+    });
+    const shopMap = new Map(shops.map((s) => [s.ownerId, s]));
+
+    const data = list.map((p) => ({
+      ...p,
+      shop: shopMap.get(p.userId) || null,
+    }));
+
+    res.json({ success: true, data });
   })
 );
 
 router.put(
+
   "/sellers/:userId/approve",
   requireRole("ADMIN"),
   asyncHandler(async (req, res) => {
@@ -99,7 +115,7 @@ router.put(
     if (!shop) throw httpError(400, "Seller chưa tạo shop");
 
     await prisma.$transaction([
-      prisma.sellerProfile.update({ where: { userId }, data: { status: "APPROVED" } }),
+      prisma.sellerProfile.update({ where: { userId }, data: { status: "APPROVED", rejectedReason: null } }),
       prisma.user.update({ where: { id: userId }, data: { role: "SELLER" } }),
       prisma.shop.update({ where: { id: shop.id }, data: { status: "ACTIVE" } }),
     ]);
@@ -118,7 +134,16 @@ router.put(
     const body = z.object({ reason: z.string().min(3).max(500).optional() }).parse(req.body);
     const profile = await prisma.sellerProfile.findUnique({ where: { userId } });
     if (!profile) throw httpError(404, "Không tìm thấy hồ sơ seller");
-    await prisma.sellerProfile.update({ where: { userId }, data: { status: "REJECTED" } });
+    const shop = await prisma.shop.findUnique({ where: { ownerId: userId } });
+
+    // Chỉ từ chối khi hồ sơ đang PENDING
+    if (profile.status === "APPROVED") throw httpError(400, "Seller đã được duyệt. Nếu cần xử lý, hãy dùng chức năng khoá shop.");
+
+    await prisma.$transaction([
+      prisma.sellerProfile.update({ where: { userId }, data: { status: "REJECTED", rejectedReason: body.reason || "Hồ sơ chưa đạt yêu cầu" } }),
+      prisma.user.update({ where: { id: userId }, data: { role: "CUSTOMER" } }),
+      shop ? prisma.shop.update({ where: { id: shop.id }, data: { status: "REJECTED" } }) : prisma.shop.create({ data: { ownerId: userId, name: profile.shopName, slug: slugify(profile.shopName) + "-" + Math.random().toString(16).slice(2, 6), status: "REJECTED" } }),
+    ]);
     await audit(req.user.sub, "SELLER_REJECT", "User", userId, { reason: body.reason });
     await notify(userId, { type: "SELLER_REJECTED", title: "Shop bị từ chối", body: body.reason || "Vui lòng bổ sung hồ sơ", data: {} });
     res.json({ success: true, message: "Đã từ chối seller" });

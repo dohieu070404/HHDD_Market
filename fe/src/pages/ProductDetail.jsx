@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import "./ProductDetail.css";
 import { Link, useParams } from "react-router-dom";
 import { publicApi } from "../api/public";
-import { customerApi } from "../api/customer";
 import { useAuth } from "../contexts/AuthContext";
 import { useCart } from "../contexts/CartContext";
+import { useToast } from "../contexts/ToastContext";
 import RatingStars from "../components/ui/RatingStars";
-
-function formatVND(v) {
-  const n = Number(v || 0);
-  return n.toLocaleString("vi-VN") + "₫";
-}
+import ProductCard from "../components/product/ProductCard";
+import { formatVnd, formatDateTime } from "../utils/format";
 
 export default function ProductDetail() {
   const { slug } = useParams();
   const { token } = useAuth();
   const { addItem } = useCart();
+  const { push } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState(null);
@@ -26,11 +25,19 @@ export default function ProductDetail() {
   const [reviewPage, setReviewPage] = useState(1);
   const [reviews, setReviews] = useState({ items: [], pagination: { page: 1, totalPages: 1 } });
 
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewContent, setReviewContent] = useState("");
-  const [reviewMsg, setReviewMsg] = useState(null);
+  const [similar, setSimilar] = useState([]);
+  const [similarLoading, setSimilarLoading] = useState(false);
 
-  async function loadProduct() {
+  const selectedSku = useMemo(() => {
+    if (!product?.skus?.length) return null;
+    return product.skus.find((s) => Number(s.id) === Number(selectedSkuId)) || product.skus[0];
+  }, [product, selectedSkuId]);
+
+  const availableStock = selectedSku?.stock ?? 0;
+  const displayPrice = selectedSku?.price ?? product?.price ?? 0;
+  const compareAtPrice = selectedSku?.compareAtPrice ?? product?.compareAtPrice ?? null;
+
+  async function load() {
     setLoading(true);
     try {
       const res = await publicApi.getProduct(slug);
@@ -41,6 +48,8 @@ export default function ProductDetail() {
       } else {
         setError(res?.message || "Không tìm thấy sản phẩm");
       }
+    } catch (e) {
+      setError(e?.data?.message || "Không tải được sản phẩm");
     } finally {
       setLoading(false);
     }
@@ -55,29 +64,37 @@ export default function ProductDetail() {
     }
   }
 
+  async function loadSimilar() {
+    setSimilarLoading(true);
+    try {
+      const res = await publicApi.similarProducts(slug, { limit: 8 });
+      if (res?.success) setSimilar(res.data || []);
+    } finally {
+      setSimilarLoading(false);
+    }
+  }
+
   useEffect(() => {
-    loadProduct();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   useEffect(() => {
-    if (product?.id) loadReviews(1);
+    if (product?.id) {
+      loadReviews(1);
+      loadSimilar();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
-  const selectedSku = useMemo(() => {
-    if (!product?.skus?.length) return null;
-    return product.skus.find((s) => Number(s.id) === Number(selectedSkuId)) || product.skus[0];
-  }, [product, selectedSkuId]);
-
-  const displayPrice = selectedSku?.price ?? product?.price ?? 0;
-
   function onAddToCart() {
     if (!product || !selectedSku) return;
-    if (selectedSku.stock <= 0) {
-      setReviewMsg({ type: "error", text: "SKU này đã hết hàng" });
+
+    if (availableStock <= 0) {
+      push({ type: "error", title: "Không thể thêm", message: "Sản phẩm hiện đã hết hàng" });
       return;
     }
+    const safeQty = Math.max(1, Math.min(Number(qty || 1), availableStock));
     addItem(
       {
         skuId: selectedSku.id,
@@ -89,46 +106,26 @@ export default function ProductDetail() {
         thumbnailUrl: product.thumbnailUrl,
         shop: product.shop,
       },
-      qty
+      safeQty
     );
-    setReviewMsg({ type: "success", text: "Đã thêm vào giỏ hàng" });
-  }
-
-  async function submitReview(e) {
-    e.preventDefault();
-    if (!product) return;
-    setReviewMsg(null);
-    const res = await customerApi.createProductReview(product.id, {
-      rating: Number(reviewRating),
-      content: reviewContent || null,
-      mediaUrls: [],
-    });
-
-    if (res?.success) {
-      setReviewContent("");
-      setReviewRating(5);
-      setReviewMsg({ type: "success", text: "Đã gửi đánh giá" });
-      await loadProduct();
-      await loadReviews(1);
-    } else {
-      setReviewMsg({ type: "error", text: res?.message || "Không gửi được đánh giá" });
-    }
+    push({ type: "success", title: "Thành công", message: "Đã thêm vào giỏ hàng" });
   }
 
   if (loading) {
     return (
-      <div className="container-page py-10">
-        <div className="card p-6">Đang tải...</div>
+      <div className="product-page">
+        <div className="container-page">
+          <div className="card product-loadingCard">Đang tải sản phẩm…</div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="container-page py-10">
-        <div className="card p-6 text-red-600">{error}</div>
-        <div className="mt-4">
-          <Link to="/products" className="btn-secondary">Quay lại</Link>
+      <div className="product-page">
+        <div className="container-page">
+          <div className="alert alert--error product-page__alert">{error}</div>
         </div>
       </div>
     );
@@ -136,179 +133,268 @@ export default function ProductDetail() {
 
   if (!product) return null;
 
-  const img = product.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900&auto=format&fit=crop";
-
   return (
-    <div className="container-page py-8">
-      <Link to="/products" className="text-sm text-slate-600 hover:text-slate-900">← Quay lại danh sách</Link>
-
-      <div className="mt-4 grid gap-6 lg:grid-cols-[420px_1fr]">
-        <div className="card overflow-hidden">
-          <div className="aspect-[4/3] bg-slate-100">
-            <img src={img} alt={product.name} className="h-full w-full object-cover" />
-          </div>
-        </div>
-
-        <div className="card p-6">
-          <h1 className="text-2xl font-semibold tracking-tight">{product.name}</h1>
-          <div className="mt-2 flex items-center gap-3 text-sm text-slate-600">
-            <div className="flex items-center gap-2">
-              <RatingStars value={product.ratingAvg || 0} />
-              <span className="muted">({product.ratingCount || 0})</span>
-            </div>
-            <span className="text-slate-300">|</span>
-            <div className="muted">Đã bán {product.soldCount || 0}</div>
-          </div>
-
-          <div className="mt-4 flex items-end gap-3">
-            <div className="text-3xl font-semibold">{formatVND(displayPrice)}</div>
-            {product.compareAtPrice ? (
-              <div className="text-sm text-slate-400 line-through">{formatVND(product.compareAtPrice)}</div>
-            ) : null}
-          </div>
-
-          <div className="mt-6">
-            <div className="label mb-2">Phân loại (SKU)</div>
-            <div className="flex flex-wrap gap-2">
-              {(product.skus || []).map((sku) => (
-                <button
-                  key={sku.id}
-                  type="button"
-                  onClick={() => setSelectedSkuId(sku.id)}
-                  className={
-                    "rounded-lg border px-3 py-2 text-sm transition " +
-                    (Number(selectedSkuId) === Number(sku.id)
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white hover:bg-slate-50")
-                  }
-                >
-                  {sku.name || "Mặc định"}
-                  <span className="ml-2 text-xs opacity-80">({sku.stock} tồn)</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-2">
-              <span className="label">Số lượng</span>
-              <input
-                className="input w-24"
-                type="number"
-                min={1}
-                value={qty}
-                onChange={(e) => setQty(Math.max(1, Number(e.target.value || 1)))}
-              />
-            </div>
-            <button className="btn-primary" onClick={onAddToCart}>Thêm vào giỏ</button>
-            <Link to="/cart" className="btn-secondary">Xem giỏ hàng</Link>
-          </div>
-
-          {reviewMsg ? (
-            <div className={"mt-4 text-sm " + (reviewMsg.type === "error" ? "text-red-600" : "text-emerald-700")}
-            >
-              {reviewMsg.text}
-            </div>
-          ) : null}
-
-          <div className="mt-6 border-t border-slate-200 pt-4">
-            <div className="text-sm font-semibold">Cửa hàng</div>
-            <div className="mt-2 flex items-center justify-between">
-              <div>
-                <div className="font-medium">{product.shop?.name || ""}</div>
-                <div className="muted text-sm flex items-center gap-2">
-                  <RatingStars value={product.shop?.ratingAvg || 0} />
-                  <span>({product.shop?.ratingCount || 0})</span>
-                </div>
-              </div>
-              {product.shop?.slug ? (
-                <Link to={`/products?shop=${encodeURIComponent(product.shop.slug)}`} className="btn-secondary">Xem shop</Link>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_420px]">
-        <section className="card p-6">
-          <h2 className="text-lg font-semibold">Mô tả</h2>
-          <p className="mt-3 text-slate-700 leading-relaxed whitespace-pre-line">
-            {product.description || "(Chưa có mô tả)"}
-          </p>
-        </section>
-
-        <section className="card p-6">
-          <h2 className="text-lg font-semibold">Đánh giá</h2>
-
-          {(reviews.items || []).length ? (
-            <div className="mt-4 space-y-4">
-              {reviews.items.map((r) => (
-                <div key={r.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">{r.user?.username || r.user?.name || "User"}</div>
-                    <RatingStars value={r.rating} />
-                  </div>
-                  {r.content ? <div className="mt-2 text-sm text-slate-700 whitespace-pre-line">{r.content}</div> : null}
-                  <div className="mt-2 text-xs muted">{new Date(r.createdAt).toLocaleString("vi-VN")}</div>
-                </div>
-              ))}
-
-              <div className="flex items-center justify-between">
-                <button
-                  className="btn-secondary"
-                  disabled={reviews.pagination?.page <= 1}
-                  onClick={() => loadReviews(reviewPage - 1)}
-                >
-                  Trước
-                </button>
-                <div className="text-sm text-slate-600">
-                  Trang {reviews.pagination?.page || 1} / {reviews.pagination?.totalPages || 1}
-                </div>
-                <button
-                  className="btn-secondary"
-                  disabled={reviews.pagination?.page >= (reviews.pagination?.totalPages || 1)}
-                  onClick={() => loadReviews(reviewPage + 1)}
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="mt-4 muted text-sm">Chưa có đánh giá.</div>
-          )}
-
-          <div className="mt-6 border-t border-slate-200 pt-6">
-            <h3 className="text-sm font-semibold">Viết đánh giá</h3>
-            {!token ? (
-              <div className="mt-2 text-sm text-slate-600">
-                Bạn cần <Link to="/login" className="underline">đăng nhập</Link> để đánh giá.
-              </div>
-            ) : (
-              <form onSubmit={submitReview} className="mt-3 space-y-3">
-                <div>
-                  <div className="label mb-1">Số sao</div>
-                  <select className="select" value={reviewRating} onChange={(e) => setReviewRating(e.target.value)}>
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <option key={n} value={n}>
-                        {n} sao
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <div className="label mb-1">Nhận xét</div>
-                  <textarea
-                    className="input min-h-[100px]"
-                    placeholder="Viết cảm nhận của bạn..."
-                    value={reviewContent}
-                    onChange={(e) => setReviewContent(e.target.value)}
+    <div className="product-page">
+      <div className="container-page">
+        <div className="product-layout">
+          {/* Left */}
+          <div className="card product-mainCard">
+            <div className="product-mainCard__grid">
+              <div className="product-gallery">
+                <div className="product-media">
+                  <img
+                    src={product.thumbnailUrl || "/placeholder.png"}
+                    alt={product.name}
+                    className="product-media__img"
                   />
                 </div>
-                <button className="btn-primary" type="submit">Gửi đánh giá</button>
-              </form>
+
+                {product.shop ? (
+                  <div className="product-shopMini">
+                    <div className="product-shopMini__left">
+                      <div className="product-shopMini__avatar">
+                        <img
+                          src={product.shop.logoUrl || "/placeholder.png"}
+                          alt={product.shop.name}
+                          className="product-shopMini__img"
+                        />
+                      </div>
+                      <div className="product-shopMini__meta">
+                        <div className="product-shopMini__name">{product.shop.name}</div>
+                        <div className="product-shopMini__slug muted">@{product.shop.slug}</div>
+                      </div>
+                    </div>
+                    <Link to={`/shop/${product.shop.slug}`} className="btn btn-outline btn-sm">
+                      Xem shop
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="product-info">
+                <h1 className="product-title">{product.name}</h1>
+
+                <div className="product-meta">
+                  <RatingStars value={product.ratingAvg || 0} />
+                  <span className="muted">
+                    {(product.ratingAvg || 0).toFixed(1)} ({product.ratingCount || 0} đánh giá)
+                  </span>
+                  <span className="product-meta__dot">•</span>
+                  <span className="muted">Đã bán {product.soldCount || 0}</span>
+                </div>
+
+                <div className="product-priceRow">
+                  <div className="product-priceRow__price">{formatVnd(displayPrice)}</div>
+                  {compareAtPrice ? (
+                    <div className="product-priceRow__compare muted">{formatVnd(compareAtPrice)}</div>
+                  ) : null}
+                </div>
+
+                {product?.skus?.length > 1 ? (
+                  <div className="product-variants">
+                    <div className="label product-variants__label">Phân loại</div>
+                    <div className="product-variants__list">
+                      {product.skus.map((s) => {
+                        const active = Number(selectedSku?.id) === Number(s.id);
+                        const label = s.name === "Default" ? "Mặc định" : s.name;
+                        return (
+                          <button
+                            key={s.id}
+                            onClick={() => setSelectedSkuId(s.id)}
+                            className={`btn btn-outline btn-sm product-variantBtn ${active ? "is-active" : ""}`}
+                            type="button"
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="product-qty">
+                  <div className="label product-qty__label">Số lượng</div>
+                  <div className="product-qty__row">
+                    <button
+                      className="btn btn-outline btn-sm"
+                      type="button"
+                      onClick={() => setQty((q) => Math.max(1, Number(q || 1) - 1))}
+                    >
+                      −
+                    </button>
+                    <input
+                      className="input product-qty__input"
+                      type="number"
+                      min={1}
+                      max={Math.max(1, availableStock)}
+                      value={qty}
+                      onChange={(e) => setQty(Number(e.target.value))}
+                    />
+                    <button
+                      className="btn btn-outline btn-sm"
+                      type="button"
+                      onClick={() => setQty((q) => Math.min(Math.max(1, availableStock), Number(q || 1) + 1))}
+                    >
+                      +
+                    </button>
+                    <div className="product-qty__stock muted">Còn lại: {availableStock}</div>
+                  </div>
+                </div>
+
+                <div className="product-add">
+                  <button
+                    className="btn btn-primary product-add__btn"
+                    disabled={availableStock <= 0}
+                    onClick={onAddToCart}
+                  >
+                    {availableStock <= 0 ? "Hết hàng" : "Thêm vào giỏ"}
+                  </button>
+                </div>
+
+                <div className="product-desc">
+                  <h3 className="product-desc__title">Mô tả</h3>
+                  <div className="product-desc__content">{product.description || "(Chưa có mô tả)"}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right */}
+          <div className="product-aside">
+            <section className="card product-asideCard">
+              <div className="product-asideCard__header">
+                <h2 className="product-asideCard__title">Sản phẩm tương tự</h2>
+                <span className="product-asideCard__hint muted">Ưu tiên tên giống → cùng danh mục → nhiều lượt mua</span>
+              </div>
+
+              {similarLoading ? (
+                <div className="product-asideCard__empty muted">Đang tải gợi ý…</div>
+              ) : similar?.length ? (
+                <div className="product-similarGrid">
+                  {similar.slice(0, 4).map((p) => (
+                    <ProductCard key={p.id} product={p} compact />
+                  ))}
+                </div>
+              ) : (
+                <div className="product-asideCard__empty muted">Chưa có gợi ý phù hợp.</div>
+              )}
+            </section>
+
+            <section className="card product-asideCard">
+              <h2 className="product-asideCard__title">Đánh giá sản phẩm</h2>
+              <p className="product-reviewCta__text muted">
+                Việc viết/chỉnh sửa đánh giá được thực hiện tại <b>Trung tâm đánh giá</b> để đảm bảo đúng điều kiện đơn hàng (đã mua/đã nhận hàng).
+              </p>
+              <div className="product-reviewCta__actions">
+                {token ? (
+                  <Link
+                    to={`/reviews?product=${encodeURIComponent(String(product.id))}`}
+                    className="btn btn-primary product-reviewCta__btn"
+                  >
+                    Đi tới Trung tâm đánh giá
+                  </Link>
+                ) : (
+                  <Link to="/login" className="btn btn-primary product-reviewCta__btn">
+                    Đăng nhập để đánh giá
+                  </Link>
+                )}
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div className="card product-reviews">
+          <div className="product-reviews__header">
+            <h2 className="product-reviews__title">Đánh giá ({product.ratingCount || 0})</h2>
+            <div className="product-reviews__rating">
+              <RatingStars value={product.ratingAvg || 0} />
+              <span className="muted">{(product.ratingAvg || 0).toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="product-reviews__list">
+            {(reviews.items || []).length === 0 ? (
+              <div className="muted product-reviews__empty">Chưa có đánh giá.</div>
+            ) : (
+              reviews.items.map((r) => (
+                <div key={r.id} className="card product-reviewCard">
+                  <div className="product-reviewCard__top">
+                    <div className="product-reviewCard__name">{r.user?.name || r.user?.username || "Người dùng"}</div>
+                    <div className="product-reviewCard__meta">
+                      <RatingStars value={r.rating} />
+                      <span className="muted">{formatDateTime(r.createdAt)}</span>
+                    </div>
+                  </div>
+
+                  {r.content ? <div className="product-reviewCard__content">{r.content}</div> : null}
+
+                  {Array.isArray(r.mediaUrls) && r.mediaUrls.length > 0 ? (
+                    <div className="product-reviewCard__gallery">
+                      {r.mediaUrls.map((url, idx) => (
+                        <a
+                          key={`${r.id}-${idx}`}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="product-reviewCard__galleryItem"
+                        >
+                          <img
+                            src={url}
+                            alt={`review-${r.id}-${idx + 1}`}
+                            className="product-reviewCard__galleryImg"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {r.replies?.length ? (
+                    <div className="product-thread">
+                      <div className="product-thread__title muted">Phản hồi từ shop</div>
+                      {r.replies.map((rp) => (
+                        <div key={rp.id} className="product-thread__item">
+                          <span className="product-thread__name">{rp.shop?.name || "Shop"}:</span> {rp.content}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {r.buyerFollowUp ? (
+                    <div className="product-thread">
+                      <div className="product-thread__title muted">Bạn đã cập nhật</div>
+                      <div className="product-thread__item">{r.buyerFollowUp.content}</div>
+                    </div>
+                  ) : null}
+
+                  {r.sellerFollowUp ? (
+                    <div className="product-thread">
+                      <div className="product-thread__title muted">Shop phản hồi thêm</div>
+                      <div className="product-thread__item">{r.sellerFollowUp.content}</div>
+                    </div>
+                  ) : null}
+                </div>
+              ))
             )}
           </div>
-        </section>
+
+          {reviews.pagination?.totalPages > 1 ? (
+            <div className="product-reviews__pager">
+              <button className="btn btn-outline btn-sm" disabled={reviewPage <= 1} onClick={() => loadReviews(reviewPage - 1)}>
+                ‹ Trước
+              </button>
+              <div className="muted">
+                Trang {reviews.pagination.page}/{reviews.pagination.totalPages}
+              </div>
+              <button
+                className="btn btn-outline btn-sm"
+                disabled={reviewPage >= reviews.pagination.totalPages}
+                onClick={() => loadReviews(reviewPage + 1)}
+              >
+                Sau ›
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   );

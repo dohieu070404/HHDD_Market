@@ -1,0 +1,143 @@
+.seller-shell{
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.seller-shell__topbar{
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.seller-shell__topbarInner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.seller-shell__meta{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.seller-shell__kicker{
+  font-size: 13px;
+  color: #64748b;
+}
+
+.seller-shell__shopName{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-shell__actions{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.seller-shell__content{
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.seller-shell__sidebar{
+  padding: 16px;
+}
+
+.seller-nav__title{
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.seller-nav{
+  margin-top: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.seller-nav__item{
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  text-decoration: none;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+.seller-nav__item:hover{
+  background: #f1f5f9;
+}
+
+.seller-nav__item--active{
+  background: #0f172a;
+  color: #fff;
+}
+
+
+/* Responsive tweaks */
+.seller-shell__meta{ min-width: 0; }
+.seller-shell__shopName{
+  max-width: 52ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px){
+  .seller-shell__topbarInner{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .seller-shell__actions{
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .seller-shell__shopName{
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 100%;
+  }
+}
+
+/* ===== Wider seller layout (match admin density) ===== */
+.seller-shell .container-page{
+  max-width: 100%;
+  width: 100%;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.seller-shell .dashboard-main{
+  min-width: 0;
+}
+
+@media (min-width: 1024px){
+  .seller-shell .dashboard-layout{
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px){
+  .seller-shell .container-page{
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1536px){
+  .seller-shell .container-page{
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}

@@ -1,29 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { adminApi } from "../../api/admin";
 
+import "./AdminCategories.css";
+
 function Tree({ nodes, depth = 0, onEdit, onDelete }) {
   if (!nodes || nodes.length === 0) return null;
+
   return (
-    <ul className={depth === 0 ? "space-y-2" : "mt-2 space-y-2 border-l border-slate-200 pl-4"}>
+    <ul className={depth === 0 ? "admin-categories__tree" : "admin-categories__subtree"}>
       {nodes.map((c) => (
-        <li key={c.id} className="rounded-lg border border-slate-200 bg-white p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="min-w-[200px]">
-              <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-slate-500">slug: {c.slug}</div>
+        <li key={c.id} className="admin-categories__item">
+          <div className="admin-categories__node">
+            <div className="admin-categories__nodeHead">
+              <div className="admin-categories__meta">
+                <div className="admin-categories__name">{c.name}</div>
+                <div className="admin-categories__slug">slug: {c.slug}</div>
+              </div>
+              <div className="admin-categories__actions">
+                <button className="btn-ghost" onClick={() => onEdit(c)} type="button">
+                  Đổi tên
+                </button>
+                <button className="btn-ghost admin-categories__deleteBtn" onClick={() => onDelete(c)} type="button">
+                  Xóa
+                </button>
+              </div>
             </div>
-            <div className="inline-flex items-center gap-2">
-              <button className="btn btn-ghost" onClick={() => onEdit(c)}>
-                Đổi tên
-              </button>
-              <button className="btn btn-ghost text-rose-700" onClick={() => onDelete(c)}>
-                Xóa
-              </button>
-            </div>
+            {c.children && c.children.length > 0 ? <Tree nodes={c.children} depth={depth + 1} onEdit={onEdit} onDelete={onDelete} /> : null}
           </div>
-          {c.children && c.children.length > 0 ? (
-            <Tree nodes={c.children} depth={depth + 1} onEdit={onEdit} onDelete={onDelete} />
-          ) : null}
         </li>
       ))}
     </ul>
@@ -94,11 +97,12 @@ export default function AdminCategories() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="card p-5">
-        <div className="text-lg font-semibold">Danh mục sản phẩm</div>
-        <div className="text-sm text-slate-600">Tạo danh mục cấp cha/con (tham khảo các sàn TMĐT).</div>
-        <div className="mt-4 grid gap-3 md:grid-cols-[1fr,240px,auto]">
+    <section className="admin-categories">
+      <div className="card admin-categories__panel">
+        <div className="admin-categories__title">Danh mục sản phẩm</div>
+        <div className="admin-categories__subtitle muted">Tạo danh mục cấp cha/con (tham khảo các sàn TMĐT).</div>
+
+        <div className="admin-categories__formGrid">
           <input
             className="input"
             placeholder="Tên danh mục"
@@ -106,7 +110,7 @@ export default function AdminCategories() {
             onChange={(e) => setCreateForm((s) => ({ ...s, name: e.target.value }))}
           />
           <select
-            className="input"
+            className="select"
             value={createForm.parentId}
             onChange={(e) => setCreateForm((s) => ({ ...s, parentId: e.target.value }))}
           >
@@ -119,16 +123,17 @@ export default function AdminCategories() {
                 </option>
               ))}
           </select>
-          <button className="btn btn-primary" onClick={create}>
+          <button className="btn-primary" onClick={create} type="button">
             Tạo
           </button>
         </div>
-        {msg && <div className="mt-3 text-sm text-rose-700">{msg}</div>}
+
+        {msg && <div className="admin-categories__msg">{msg}</div>}
       </div>
 
-      <div className="card p-5">
-        {loading ? <div className="text-slate-500">Đang tải...</div> : <Tree nodes={roots} onEdit={edit} onDelete={del} />}
+      <div className="card admin-categories__treeCard">
+        {loading ? <div className="admin-categories__loading muted">Đang tải...</div> : <Tree nodes={roots} onEdit={edit} onDelete={del} />}
       </div>
-    </div>
+    </section>
   );
 }

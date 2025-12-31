@@ -2,6 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { sellerApi } from "../../api/seller";
 
+import "./SellerOrderDetail.css";
+
+function shippingStatusLabel(status) {
+  const map = {
+    PENDING: "Chờ lấy hàng",
+    READY_TO_SHIP: "Sẵn sàng giao",
+    SHIPPED: "Đã bàn giao vận chuyển",
+    IN_TRANSIT: "Đang vận chuyển",
+    DELIVERED: "Đã giao hàng",
+    RETURNED: "Đã hoàn hàng",
+  };
+  return map[status] || status;
+}
+
+
+
 function formatVND(v) {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN") + "₫";
@@ -18,14 +34,17 @@ function StatusBadge({ status }) {
     COMPLETED: "Hoàn tất",
     CANCEL_REQUESTED: "Yêu cầu hủy",
     CANCELLED: "Đã hủy",
-    RETURN_REQUESTED: "Yêu cầu hoàn",
-    RETURNED: "Đã hoàn",
+    RETURN_REQUESTED: "Yêu cầu trả hàng",
+    RETURN_APPROVED: "Đã duyệt trả hàng",
+    RETURN_REJECTED: "Từ chối trả hàng",
+    RETURN_RECEIVED: "Đã nhận hàng hoàn",
+    REFUND_REQUESTED: "Yêu cầu hoàn tiền",
+    REFUNDED: "Đã hoàn tiền",
+    DISPUTED: "Đang khiếu nại",
   };
   const label = map[status] || status;
   return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold">
-      {label}
-    </span>
+    <span className="badge badge-muted seller-order-detail__status">{label}</span>
   );
 }
 
@@ -40,7 +59,12 @@ export default function SellerOrderDetail() {
     setErr("");
     try {
       const res = await sellerApi.orderDetail(code);
-      setOrder(res.data);
+      if (res?.success) {
+        setOrder(res.data);
+      } else {
+        setOrder(null);
+        setErr(res?.message || "Không tải được chi tiết đơn hàng");
+      }
     } catch (e) {
       setErr(e.message || "Không tải được chi tiết đơn hàng");
     } finally {
@@ -61,17 +85,23 @@ export default function SellerOrderDetail() {
     if (["CONFIRMED"].includes(order.status)) {
       a.push({ key: "pack", label: "Đóng gói", fn: () => sellerApi.packOrder(order.code) });
     }
-    if (["CONFIRMED", "PACKING"].includes(order.status)) {
+    if (["PACKING"].includes(order.status)) {
       a.push({ key: "ship", label: "Tạo vận đơn", fn: () => sellerApi.createShipment(order.code) });
     }
     if (order.shipment && ["SHIPPED"].includes(order.status)) {
       a.push({ key: "in_transit", label: "Cập nhật: Đang giao", fn: () => sellerApi.updateShipment(order.code, { status: "IN_TRANSIT", message: "Đang giao hàng" }) });
       a.push({ key: "delivered", label: "Cập nhật: Đã giao", fn: () => sellerApi.updateShipment(order.code, { status: "DELIVERED", message: "Đã giao hàng" }) });
     }
+    if (order.status === "CANCEL_REQUESTED" && order.cancelRequest && order.cancelRequest.status === "REQUESTED") {
+      a.push({ key: "cancel_approve", label: "Duyệt huỷ", variant: "danger", fn: () => sellerApi.approveCancel(order.code) });
+      a.push({ key: "cancel_reject", label: "Từ chối huỷ", fn: () => sellerApi.rejectCancel(order.code) });
+    }
     if (!order.shipment) {
       // no shipment yet
     }
-    if (!order || !["SHIPPED", "DELIVERED", "COMPLETED", "CANCELLED", "RETURN_REQUESTED", "RETURNED"].includes(order.status)) {
+    // Seller can only directly cancel orders in early states.
+    const canSellerCancel = ["PENDING_PAYMENT", "PLACED", "CONFIRMED", "PACKING"].includes(order.status);
+    if (canSellerCancel) {
       a.push({ key: "cancel", label: "Hủy", fn: () => sellerApi.cancelOrder(order.code, { reason: "Người bán hủy" }) });
     }
     return a;
@@ -80,98 +110,100 @@ export default function SellerOrderDetail() {
   async function run(fn) {
     setErr("");
     try {
-      await fn();
-      await load();
+      const res = await fn();
+      if (res && res.success === false) {
+        setErr(res.message || "Thao tác thất bại");
+      } else {
+        await load();
+      }
     } catch (e) {
       setErr(e.message || "Thao tác thất bại");
     }
   }
 
   return (
-    <div>
-      <div className="flex items-start justify-between gap-4">
+    <section className="seller-order-detail">
+      <header className="seller-order-detail__header">
         <div>
-          <div className="text-xl font-bold">Đơn {code}</div>
-          <div className="mt-1 flex items-center gap-2 text-sm text-slate-600">
+          <h1 className="seller-order-detail__title">Đơn {code}</h1>
+          <div className="seller-order-detail__meta muted">
             {order ? <StatusBadge status={order.status} /> : null}
-            {order ? <span>•</span> : null}
+            {order ? <span className="seller-order-detail__dot">•</span> : null}
             {order ? <span>{new Date(order.createdAt).toLocaleString("vi-VN")}</span> : null}
           </div>
         </div>
-        <Link className="btn btn-ghost" to="/seller/orders">
-          ← Quay lại
-        </Link>
-      </div>
+        <Link className="btn btn-ghost" to="/seller/orders">← Quay lại</Link>
+      </header>
 
-      {err ? <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{err}</div> : null}
-      {loading ? <div className="mt-6 text-sm text-slate-600">Đang tải...</div> : null}
-      {!loading && !order ? <div className="mt-6 text-sm text-slate-600">Không tìm thấy đơn.</div> : null}
+      {err ? <div className="alert alert--danger seller-order-detail__alert">{err}</div> : null}
+      {loading ? <div className="seller-order-detail__loading muted">Đang tải...</div> : null}
+      {!loading && !order ? <div className="seller-order-detail__empty muted">Không tìm thấy đơn.</div> : null}
 
       {order ? (
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 card p-5">
-            <div className="font-semibold">Sản phẩm</div>
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+        <div className="seller-order-detail__grid">
+          <div className="card seller-order-detail__products">
+            <div className="seller-order-detail__sectionTitle">Sản phẩm</div>
+            <div className="seller-order-detail__tableWrap">
+              <table className="table table--tiki seller-order-detail__table">
+                <thead>
                   <tr>
-                    <th className="px-3 py-2 text-left">Tên</th>
-                    <th className="px-3 py-2 text-right">SL</th>
-                    <th className="px-3 py-2 text-right">Giá</th>
+                    <th scope="col">Tên</th>
+                    <th scope="col" className="seller-order-detail__thRight">SL</th>
+                    <th scope="col" className="seller-order-detail__thRight">Giá</th>
                   </tr>
                 </thead>
                 <tbody>
                   {order.items?.map((it) => (
-                    <tr key={it.id} className="border-t border-slate-200">
-                      <td className="px-3 py-2">
-                        <div className="font-semibold">{it.name}</div>
-                        <div className="text-xs text-slate-600">SKU: {it.skuId}</div>
+                    <tr key={it.id}>
+                      <td>
+                        <div className="seller-order-detail__productName">{it.name}</div>
+                        <div className="seller-order-detail__productSku muted">SKU: {it.skuId}</div>
                       </td>
-                      <td className="px-3 py-2 text-right font-semibold">{it.qty}</td>
-                      <td className="px-3 py-2 text-right font-semibold">{formatVND(it.unitPrice)}</td>
+                      <td className="seller-order-detail__tdRight seller-order-detail__qty">{it.qty}</td>
+                      <td className="seller-order-detail__tdRight seller-order-detail__price">{formatVND(it.unitPrice)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <div className="text-sm text-slate-600">Tổng</div>
-              <div className="text-lg font-extrabold">{formatVND(order.total)}</div>
+            <div className="seller-order-detail__totalRow">
+              <div className="seller-order-detail__totalLabel muted">Tổng</div>
+              <div className="seller-order-detail__totalValue">{formatVND(order.total)}</div>
             </div>
           </div>
 
-          <div className="card p-5">
-            <div className="font-semibold">Thao tác</div>
-            <div className="mt-4 grid gap-2">
+          <div className="card seller-order-detail__side">
+            <div className="seller-order-detail__sectionTitle">Thao tác</div>
+            <div className="seller-order-detail__actions">
               {actions.map((a) => (
-                <button key={a.key} className="btn" onClick={() => run(a.fn)}>
+                <button key={a.key} className={a.variant === "danger" ? "btn btn-danger" : "btn"} onClick={() => run(a.fn)}>
                   {a.label}
                 </button>
               ))}
-              {actions.length === 0 ? <div className="text-sm text-slate-600">Không có thao tác phù hợp.</div> : null}
+              {actions.length === 0 ? <div className="seller-order-detail__noActions muted">Không có thao tác phù hợp.</div> : null}
             </div>
 
-            <div className="mt-6">
-              <div className="font-semibold">Giao hàng</div>
-              <div className="mt-2 text-sm text-slate-700">
-                {order.shippingFullName || "-"}
-                <div className="text-slate-600">{order.shippingPhone || ""}</div>
-                <div className="mt-2 text-slate-600">
-                  {order.shippingAddressLine1 || ""}{order.shippingCity ? `, ${order.shippingCity}` : ""}
+            <div className="seller-order-detail__block">
+              <div className="seller-order-detail__sectionTitle">Giao hàng</div>
+              <div className="seller-order-detail__shipInfo">
+                <div className="seller-order-detail__shipName">{order.shipFullName || "-"}</div>
+                <div className="seller-order-detail__shipMuted muted">{order.shipPhone || ""}</div>
+                <div className="seller-order-detail__shipMuted muted">
+                  {order.shipLine1 || ""}{order.shipCity ? `, ${order.shipCity}` : ""}
                 </div>
               </div>
             </div>
 
             {order.shipment ? (
-              <div className="mt-6">
-                <div className="font-semibold">Vận đơn</div>
-                <div className="mt-2 text-sm text-slate-600">Mã: {order.shipment.trackingNumber}</div>
-                <div className="mt-2 text-sm text-slate-600">Trạng thái: {order.shipment.status}</div>
+              <div className="seller-order-detail__block">
+                <div className="seller-order-detail__sectionTitle">Vận đơn</div>
+                <div className="seller-order-detail__shipment muted">Mã: {order.shipment.trackingCode}</div>
+                <div className="seller-order-detail__shipment muted">Trạng thái: {shippingStatusLabel(order.shipment.status)}</div>
               </div>
             ) : null}
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

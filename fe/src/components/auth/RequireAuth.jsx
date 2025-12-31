@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import "./authGuard.css";
 
 export default function RequireAuth({ children }) {
   const { token, booting } = useAuth();
@@ -7,8 +8,10 @@ export default function RequireAuth({ children }) {
 
   if (booting) {
     return (
-      <div className="container-page py-10">
-        <div className="card p-6">Đang tải...</div>
+      <div className="auth-guard">
+        <div className="container-page auth-guard__container">
+          <div className="card auth-guard__card">Đang tải...</div>
+        </div>
       </div>
     );
   }

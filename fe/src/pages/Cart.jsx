@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import "./Cart.css";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -11,6 +12,8 @@ export default function Cart() {
   const { items, subtotal, removeItem, setQty } = useCart();
   const { token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const reorderInfo = location.state?.added != null ? { added: location.state.added, skipped: location.state.skipped || 0 } : null;
 
   function goCheckout() {
     if (!token) {
@@ -22,12 +25,14 @@ export default function Cart() {
 
   if (!items.length) {
     return (
-      <div className="container-page py-10">
-        <div className="card p-6">
-          <div className="text-lg font-semibold">Giỏ hàng trống</div>
-          <p className="mt-1 muted">Hãy thêm vài sản phẩm trước khi thanh toán.</p>
-          <div className="mt-4">
-            <Link to="/products" className="btn-primary">Đi mua sắm</Link>
+      <div className="cart-page">
+        <div className="container-page cart-page__container">
+          <div className="card cart-empty">
+            <div className="cart-empty__title">Giỏ hàng trống</div>
+            <p className="muted cart-empty__desc">Hãy thêm vài sản phẩm trước khi thanh toán.</p>
+            <div className="cart-empty__actions">
+              <Link to="/products" className="btn-primary">Đi mua sắm</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -35,76 +40,83 @@ export default function Cart() {
   }
 
   return (
-    <div className="container-page py-8">
-      <h1 className="text-xl font-semibold">Giỏ hàng</h1>
+    <div className="cart-page">
+      <div className="container-page cart-page__container">
+        <h1 className="cart-page__title">Giỏ hàng</h1>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section className="card p-4">
-          <div className="divide-y divide-slate-200">
+      {reorderInfo ? (
+        <div className="alert alert--success cart-page__alert">
+          Đã thêm <b>{reorderInfo.added}</b> sản phẩm vào giỏ hàng.
+          {reorderInfo.skipped ? <span className="muted"> (Bỏ qua {reorderInfo.skipped} sản phẩm không còn bán / hết hàng)</span> : null}
+        </div>
+      ) : null}
+
+      <div className="layout-aside-360 cart-page__layout">
+        <section className="card cart-list">
             {items.map((it) => (
-              <div key={it.skuId} className="flex gap-4 py-4">
-                <div className="h-20 w-20 overflow-hidden rounded-lg bg-slate-100">
+              <div key={it.skuId} className="cart-item">
+                <div className="cart-item__thumb">
                   <img
                     src={it.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=320&auto=format&fit=crop"}
                     alt={it.name}
-                    className="h-full w-full object-cover"
+                    className="cart-item__thumbImg"
                   />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-3">
+                <div className="cart-item__main">
+                  <div className="cart-item__head">
                     <div>
-                      <div className="font-medium">{it.name}</div>
-                      <div className="muted text-sm">SKU: {it.skuName || "Mặc định"}</div>
-                      {it.shop?.name ? <div className="muted text-xs">{it.shop.name}</div> : null}
+                      <div className="cart-item__name">{it.name}</div>
+                      <div className="muted cart-item__sku">SKU: {it.skuName || "Mặc định"}</div>
+                      {it.shop?.name ? <div className="muted cart-item__shop">{it.shop.name}</div> : null}
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold">{formatVND(it.price)}</div>
-                      <div className="muted text-xs">/ 1 sp</div>
+                    <div className="cart-item__price">
+                      <div className="cart-item__priceValue">{formatVND(it.price)}</div>
+                      <div className="muted cart-item__priceUnit">/ 1 sp</div>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-slate-600">SL</span>
+                  <div className="cart-item__footer">
+                    <div className="cart-item__qty">
+                      <span className="cart-item__qtyLabel">SL</span>
                       <input
-                        className="input w-24"
+                        className="input cart-item__qtyInput"
                         type="number"
                         min={1}
                         value={it.qty}
                         onChange={(e) => setQty(it.skuId, e.target.value)}
                       />
                     </div>
-                    <button className="btn-ghost text-red-600 hover:bg-red-50" onClick={() => removeItem(it.skuId)}>
+                    <button className="btn-ghost btn-ghost--danger cart-item__remove" onClick={() => removeItem(it.skuId)}>
                       Xóa
                     </button>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
         </section>
 
-        <aside className="card p-6 h-fit">
-          <div className="text-sm font-semibold">Tóm tắt</div>
-          <div className="mt-3 flex items-center justify-between">
+        <aside className="card cart-summary">
+          <div className="cart-summary__title">Tóm tắt</div>
+          <div className="cart-summary__row">
             <span className="muted">Tạm tính</span>
-            <span className="font-semibold">{formatVND(subtotal)}</span>
+            <span className="cart-summary__value">{formatVND(subtotal)}</span>
           </div>
-          <div className="mt-2 flex items-center justify-between">
+          <div className="cart-summary__row">
             <span className="muted">Phí ship</span>
             <span className="muted">Tính ở bước checkout</span>
           </div>
-          <div className="mt-4 border-t border-slate-200 pt-4 flex items-center justify-between">
-            <span className="font-medium">Tổng</span>
-            <span className="text-lg font-semibold">{formatVND(subtotal)}</span>
+          <div className="cart-summary__total">
+            <span className="cart-summary__totalLabel">Tổng</span>
+            <span className="cart-summary__totalValue">{formatVND(subtotal)}</span>
           </div>
-          <button className="btn-primary mt-5 w-full" onClick={goCheckout}>
+          <button className="btn-primary cart-summary__checkout" onClick={goCheckout}>
             Thanh toán
           </button>
-          <Link to="/products" className="btn-secondary mt-3 w-full">
+          <Link to="/products" className="btn-secondary cart-summary__continue">
             Tiếp tục mua sắm
           </Link>
         </aside>
+      </div>
       </div>
     </div>
   );

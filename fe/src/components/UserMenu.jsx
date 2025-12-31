@@ -10,7 +10,7 @@ export default function UserMenu() {
   const ref = useRef(null);
   const navigate = useNavigate();
 
-  const label = useMemo(() => user?.username || user?.email || "Guest", [user]);
+  const label = useMemo(() => user?.username || user?.email || "Khách", [user]);
   const initial = useMemo(() => safeUpperInitial(label), [label]);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function UserMenu() {
           <Link className="btn btnGhost" to="/login">
             Đăng nhập
           </Link>
-          <Link className="btn btnPrimary" to="/register">
+          <Link className="btn-primary" to="/register">
             Đăng ký
           </Link>
         </div>
@@ -61,7 +61,7 @@ export default function UserMenu() {
             <span className="dropdownIcon" aria-hidden>
               👤
             </span>
-            Profile
+            Hồ sơ
           </Link>
 
           <Link className="dropdownItem" to="/orders" onClick={() => setOpen(false)}>
@@ -75,7 +75,7 @@ export default function UserMenu() {
             <span className="dropdownIcon" aria-hidden>
               ⎋
             </span>
-            Logout
+            Đăng xuất
           </button>
         </div>
       ) : null}

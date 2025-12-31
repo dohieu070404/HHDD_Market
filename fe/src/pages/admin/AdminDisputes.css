@@ -1,0 +1,194 @@
+.admin-disputes__header{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-disputes__title{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-disputes__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.admin-disputes__filters{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-disputes__select{ width: 220px; }
+
+.admin-disputes__kpis{
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 1024px){
+  .admin-disputes__kpis{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.admin-disputes__kpi{
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-disputes__kpiLabel{ font-size: 12px; color: #64748b; font-weight: 600; }
+.admin-disputes__kpiValue{ margin-top: 4px; font-size: 20px; font-weight: 700; color: #0f172a; }
+
+.admin-disputes__alert{ margin-top: 14px; }
+
+.admin-disputes__list{
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-disputes__skeletonCard{ padding: 18px; }
+
+.admin-disputes__item{ padding: 18px; }
+
+.admin-disputes__itemHead{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-disputes__summary{ min-width: 0; }
+
+.admin-disputes__orderTitle{
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-disputes__itemMeta{ margin-top: 6px; font-size: 12px; }
+
+.admin-disputes__message{
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-disputes__clamp{
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-disputes__itemFoot{
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-disputes__orderSub{ font-size: 12px; }
+
+.admin-disputes__resolution{
+  margin-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
+}
+
+.admin-disputes__resolutionTitle{ font-size: 14px; font-weight: 700; color: #0f172a; }
+.admin-disputes__resolutionText{ margin-top: 8px; font-size: 14px; line-height: 1.6; white-space: pre-line; }
+
+.admin-disputes__empty{ padding: 20px; }
+
+.admin-disputes__modal{ width: min(980px, 96vw); }
+
+.admin-disputes__modalContent{ display: grid; gap: 14px; }
+
+.admin-disputes__orderInfo{
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.admin-disputes__box{
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.admin-disputes__box--reply{ background: #fff; }
+
+.admin-disputes__boxTitle{ font-size: 14px; font-weight: 700; color: #0f172a; }
+.admin-disputes__boxMeta{ margin-top: 4px; font-size: 12px; color: #64748b; }
+.admin-disputes__boxText{ margin-top: 10px; font-size: 14px; line-height: 1.6; white-space: pre-line; }
+
+.admin-disputes__field{ display: grid; gap: 6px; }
+.admin-disputes__fieldLabel{ font-size: 14px; font-weight: 700; color: #0f172a; }
+.admin-disputes__textarea{ resize: vertical; }
+.admin-disputes__hint{ font-size: 12px; color: #64748b; }
+
+.admin-disputes__checkRow{ display: flex; align-items: center; gap: 10px; font-size: 14px; }
+
+.admin-disputes__modalActions{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Evidence gallery */
+.admin-disputes__gallery{
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 640px){
+  .admin-disputes__gallery{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.admin-disputes__galleryItem{
+  display: block;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.admin-disputes__galleryImg{
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Revision request highlight */
+.admin-disputes__revision{
+  border-radius: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  padding: 14px;
+}
+
+.admin-disputes{ padding: 24px 0; }
+
+.admin-disputes__head{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}

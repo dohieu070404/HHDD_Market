@@ -1,0 +1,133 @@
+.seller-returns__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seller-returns__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-returns__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-returns__filters{
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seller-returns__pill{
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seller-returns__pill:hover{ background: #f1f5f9; }
+
+.seller-returns__pill--active{
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.seller-returns__card{
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.seller-returns__loading{
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.seller-returns__empty{
+  padding: 16px;
+}
+
+.seller-returns__tableWrap{
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.seller-returns__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .seller-returns__table{ min-width: 760px; }
+}
+
+.seller-returns__thRight,
+.seller-returns__tdRight{ text-align: right; }
+
+.seller-returns__code{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-returns__date{ margin-top: 2px; font-size: 12px; }
+
+.seller-returns__clamp{
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.seller-returns__note{ margin-top: 6px; font-size: 12px; }
+
+.seller-returns__total{
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.seller-returns__rowActions{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.seller-returns__modal{ width: min(860px, 100%); }
+
+.seller-returns__modalActions{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seller-returns__form{ display: grid; gap: 12px; }
+
+.seller-returns__field{ display: grid; gap: 6px; }
+
+.seller-returns__subLabel{ font-size: 13px; }
+
+.seller-returns__hint{ margin-top: 4px; font-size: 12px; }
+
+.seller-returns__grid2{
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 640px){
+  .seller-returns__grid2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.seller-returns__textarea{ resize: vertical; }
+
+.seller-returns{ padding: 24px 0; }

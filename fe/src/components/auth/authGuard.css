@@ -1,0 +1,23 @@
+.auth-guard__container{
+  padding-top: 40px;
+  padding-bottom: 40px;
+}
+
+.auth-guard__card{
+  padding: 24px;
+}
+
+.auth-guard__title{
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.auth-guard__desc{
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.auth-guard{
+  padding: 28px 0;
+}

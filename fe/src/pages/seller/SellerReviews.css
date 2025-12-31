@@ -1,0 +1,109 @@
+.seller-reviews__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seller-reviews__title{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-reviews__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-reviews__msg{
+  margin-top: 14px;
+  padding: 14px;
+  font-size: 14px;
+}
+
+.seller-reviews__loading{
+  margin-top: 14px;
+  padding: 20px;
+}
+
+.seller-reviews__list{
+  margin-top: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.seller-reviews__card{ padding: 18px; }
+
+.seller-reviews__top{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seller-reviews__product{ font-size: 14px; font-weight: 700; color: #0f172a; }
+
+.seller-reviews__meta{ margin-top: 4px; font-size: 12px; }
+
+.seller-reviews__topRight{ text-align: right; }
+
+.seller-reviews__stars{ font-size: 14px; }
+
+.seller-reviews__star{ display: inline-block; line-height: 1; }
+.seller-reviews__star--on{ color: #f59e0b; }
+.seller-reviews__star--off{ color: #cbd5e1; }
+
+.seller-reviews__report{ margin-top: 10px; }
+
+.seller-reviews__content{
+  margin-top: 12px;
+  font-size: 14px;
+  color: #334155;
+  white-space: pre-line;
+}
+
+.seller-reviews__block{
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.seller-reviews__blockTitle{ font-size: 14px; font-weight: 700; color: #0f172a; }
+
+.seller-reviews__replyList{ margin-top: 10px; display: grid; gap: 10px; }
+
+.seller-reviews__reply{
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.seller-reviews__replyMeta{ font-size: 12px; color: #64748b; }
+
+.seller-reviews__replyBody{ margin-top: 6px; }
+
+.seller-reviews__followUp{
+  margin-top: 10px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 12px;
+  font-size: 14px;
+  white-space: pre-line;
+}
+
+.seller-reviews__hint{ margin-top: 6px; font-size: 12px; color: #64748b; }
+
+.seller-reviews__textarea{ margin-top: 10px; width: 100%; resize: vertical; }
+
+.seller-reviews__actions{
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seller-reviews{ padding: 24px 0; }

@@ -1,123 +1,120 @@
-.ordersTable{
+/* Orders */
+
+.orders-page{ padding: 28px 0; }
+
+.orders-page__container{ }
+
+.orders-header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.orders-header__title{ font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.orders-header__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.orders-alert{ margin-top: 16px; }
+
+.orders-tabsWrap{ margin-top: 18px; }
+.orders-content{ margin-top: 18px; }
+
+.orders-skeletonList{ display: grid; gap: 14px; }
+
+.orders-skeletonCard{ padding: 20px; }
+.orders-skeletonCard__top{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.orders-skeletonCard__items{ margin-top: 16px; display: grid; gap: 12px; }
+.orders-skeletonItem{ display: grid; grid-template-columns: 64px 1fr 88px; gap: 12px; align-items: center; }
+
+.orders-skel{ display: block; }
+
+.orders-skeletonItem__lines{ min-width: 0; }
+
+.orders-skeletonItem__price{ display: flex; justify-content: flex-end; }
+.orders-skel--title{ width: 180px; height: 14px; }
+.orders-skel--badge{ width: 90px; height: 22px; }
+.orders-skel--thumb{ width: 64px; height: 64px; }
+.orders-skel--lineLg{ width: 70%; height: 14px; }
+.orders-skel--lineSm{ width: 45%; height: 14px; margin-top: 8px; }
+.orders-skel--price{ width: 80px; height: 14px; }
+
+.orders-list{ display: grid; gap: 14px; }
+
+.orders-orderCard{ overflow: hidden; }
+
+.orders-orderCard__shopRow{ display: flex; align-items: center; gap: 8px; min-width: 0; }
+.orders-orderCard__shopName{ font-weight: 800; }
+.orders-orderCard__date{ font-size: 12px; }
+
+.orders-orderCard__body{ padding: 18px; }
+.orders-orderCard__items{ display: grid; gap: 12px; }
+
+.orders-orderItem__content{ min-width: 0; }
+.orders-orderItem__row{ display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+
+.orders-orderItem__main{ min-width: 0; }
+.orders-orderItem__name{ font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.orders-orderItem__meta{ margin-top: 2px; font-size: 13px; }
+.orders-orderItem__actions{ margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.orders-orderItem__price{ text-align: right; }
+.orders-orderItem__unit{ font-size: 13px; }
+.orders-orderItem__sum{ font-weight: 800; }
+
+.orders-orderCard__footer{
   margin-top: 14px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  overflow:hidden;
-  background: rgba(255,255,255,0.03);
-}
-
-.row{
-  display:grid;
-  grid-template-columns: 1.2fr 1.2fr 1fr 1fr 100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  align-items:center;
-  border-top: 1px solid rgba(255,255,255,0.06);
+  flex-wrap: wrap;
 }
 
-.row.head{
-  border-top: 0;
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.78);
-  font-size: 13px;
-}
+.orders-orderCard__total{ font-size: 13px; }
+.orders-orderCard__actions{ display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 
-.mono{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-weight: 700;
-}
+.orders-hint{ margin-top: 12px; font-size: 12px; }
 
-.price{
-  text-align:right;
-  font-weight: 900;
-}
-
-.status{
-  display:inline-flex;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  font-size: 12px;
-}
-
-.status.new{ border-color: rgba(34,211,238,0.35); background: rgba(34,211,238,0.12); }
-.status.paid{ border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.12); }
-.status.shipped{ border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.12); }
-.status.done{ border-color: rgba(124,58,237,0.35); background: rgba(124,58,237,0.12); }
-
-.btnSmall{
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(255,255,255,0.06);
-  color: var(--text);
-  text-decoration:none;
-  font-size: 13px;
-}
-
-.btnSmall:hover{
-  background: rgba(255,255,255,0.08);
-}
-
-.empty{
-  margin-top: 18px;
-  padding: 18px;
-  border-radius: var(--radius);
-  border: 1px dashed rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.02);
-}
-
-.emptyTitle{
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.ordersGrid{
+.orders-pagination{
   margin-top: 14px;
-  display:grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.orderCard{
-  display:block;
-  text-decoration:none;
-  color: var(--text);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  padding: 14px;
+.orders-pagination__info{ font-size: 13px; }
+
+.orders-emptyCard{ padding: 22px; }
+
+.orders-modalFooter{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+
+.orders-rrForm{ margin-top: 16px; }
+.orders-rrForm__block{ margin-top: 14px; }
+
+.orders-rrForm__label{ margin-bottom: 6px; }
+
+.orders-rrForm__control{ width: 100%; }
+
+.orders-rrForm__hint{ margin-top: 8px; font-size: 12px; }
+
+.orders-alert__title{
+  font-weight: 900;
+  color: #0f172a;
 }
 
-.orderCard:hover{
-  background: rgba(255,255,255,0.06);
+.orders-alert__meta{
+  margin-top: 4px;
+  font-size: 13px;
+  color: #64748b;
 }
 
-.orderTop{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap: 12px;
-}
-
-.orderId{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-weight: 800; }
-.orderMeta{ margin-top: 6px; color: rgba(255,255,255,0.65); font-size: 13px; }
-
-.orderRow{
-  margin-top: 10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-.strong{ font-weight: 900; }
-
-@media (max-width: 960px){
-  .ordersGrid{ grid-template-columns: 1fr; }
-  .row{
-    grid-template-columns: 1fr;
-    align-items:start;
-  }
-  .price{ text-align:left; }
+.orders-orderCard__totalValue{
+  font-weight: 900;
+  color: #0f172a;
 }

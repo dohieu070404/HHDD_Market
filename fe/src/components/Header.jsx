@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { NavLink, Link } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useCart } from "../contexts/CartContext.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
 import UserMenu from "./UserMenu.jsx";
@@ -14,11 +14,25 @@ function Icon({ children }) {
 }
 
 export default function Header() {
+  const navigate = useNavigate();
   const { count } = useCart();
   const { isAuthenticated, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [q, setQ] = useState("");
 
   const cartBadge = useMemo(() => (count > 99 ? "99+" : String(count)), [count]);
+
+  function submitSearch(e) {
+    e.preventDefault();
+    const query = (q || "").trim();
+    if (!query) {
+      navigate("/products");
+      setMobileOpen(false);
+      return;
+    }
+    navigate(`/products?q=${encodeURIComponent(query)}`);
+    setMobileOpen(false);
+  }
 
   return (
     <header className="header">
@@ -38,6 +52,18 @@ export default function Header() {
             <span className="brandText">Shop Dark</span>
           </Link>
 
+          <form className="headerSearch" onSubmit={submitSearch} role="search">
+            <input
+              className="headerSearchInput"
+              placeholder="Tìm kiếm sản phẩm..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <button className="headerSearchBtn" type="submit" aria-label="Tìm kiếm">
+              🔎
+            </button>
+          </form>
+
           <nav className={mobileOpen ? "nav navOpen" : "nav"}>
             <NavLink to="/" className={({ isActive }) => (isActive ? "navLink active" : "navLink")} end>
               <Icon>🏠</Icon> Home
@@ -48,6 +74,13 @@ export default function Header() {
               className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
             >
               <Icon>🛍</Icon> Sản phẩm
+            </NavLink>
+
+            <NavLink
+              to="/guide"
+              className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
+            >
+              <Icon>📘</Icon> Hướng dẫn
             </NavLink>
 
             <NavLink to="/cart" className={({ isActive }) => (isActive ? "navLink active" : "navLink")}>
@@ -69,7 +102,7 @@ export default function Header() {
                 to="/seller"
                 className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
               >
-                <Icon>🏬</Icon> Seller Center
+                <Icon>🏬</Icon> Trung tâm bán hàng
               </NavLink>
             ) : null}
 

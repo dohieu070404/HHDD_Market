@@ -1,0 +1,116 @@
+.seller-settings__header{
+  margin-bottom: 6px;
+}
+
+.seller-settings__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-settings__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-settings__alert{
+  margin-top: 14px;
+}
+
+.seller-settings__grid{
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 1024px){
+  .seller-settings__grid{
+    grid-template-columns: 2fr 1fr;
+    align-items: start;
+  }
+}
+
+.seller-settings__formCard,
+.seller-settings__sysCard{
+  padding: 16px;
+}
+
+.seller-settings__form{
+  display: grid;
+  gap: 14px;
+}
+
+.seller-settings__field{
+  display: grid;
+  gap: 6px;
+}
+
+.seller-settings__logoRow{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.seller-settings__logo{
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.seller-settings__logo img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seller-settings__logoPlaceholder{
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.seller-settings__logoActions{
+  display: grid;
+  gap: 4px;
+}
+
+.seller-settings__uploading{ margin-top: 8px; }
+.seller-settings__uploadingText{ margin-top: 4px; font-size: 12px; }
+
+.seller-settings__details{ margin-top: 8px; }
+
+.seller-settings__summary{
+  font-size: 12px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.seller-settings__detailsBody{ margin-top: 10px; display: grid; gap: 6px; }
+.seller-settings__detailsHint{ font-size: 12px; color: #64748b; }
+
+.seller-settings__textarea{ resize: vertical; min-height: 120px; }
+
+.seller-settings__actions{
+  display: flex;
+  gap: 10px;
+}
+
+.seller-settings__sysTitle{ font-size: 14px; font-weight: 700; color: #0f172a; }
+.seller-settings__sysLoading{ margin-top: 10px; font-size: 14px; }
+
+.seller-settings__sysList{ margin-top: 10px; display: grid; gap: 10px; font-size: 14px; }
+
+.seller-settings__sysLabel{ font-size: 12px; color: #64748b; font-weight: 600; }
+
+.seller-settings__sysValue{ font-weight: 700; color: #0f172a; }
+
+.seller-settings__mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+.seller-settings__sysError{ margin-top: 10px; font-size: 14px; color: #b91c1c; }
+
+.seller-settings{ padding: 24px 0; }

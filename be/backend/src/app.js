@@ -46,10 +46,29 @@ app.use("/api/admin", adminRoutes);
 
 app.use((err, req, res, next) => {
     console.error(err);
+
+    // JSON parse error (body-parser)
+    if (err && err.type === "entity.parse.failed") {
+        return res.status(400).json({ success: false, message: "JSON không hợp lệ" });
+    }
+
+    // Zod validation errors
+    if (err && (err.name === "ZodError" || err.issues)) {
+        const issues = err.issues || [];
+        return res.status(400).json({
+            success: false,
+            message: "Dữ liệu không hợp lệ",
+            details: issues.map((i) => ({
+                path: i.path,
+                message: i.message,
+            })),
+        });
+    }
+
     const status = err.status || 500;
     res.status(status).json({
         success: false,
-        message: err.message || "Internal Server Error",
+        message: err.message || "Lỗi hệ thống",
         details: err.details || undefined,
     });
 });

@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import "./ProductCard.css";
 import RatingStars from "../ui/RatingStars";
 
 function formatVND(v) {
@@ -6,33 +7,78 @@ function formatVND(v) {
   return n.toLocaleString("vi-VN") + "₫";
 }
 
-export default function ProductCard({ product }) {
-  const img = product.thumbnailUrl || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=640&auto=format&fit=crop";
+function ShopInline({ shop, onNavigate }) {
+  if (!shop) return null;
+  return (
+    <button
+      type="button"
+      className="shop-inline"
+      onClick={(e) => {
+        e.stopPropagation();
+        onNavigate(`/shop/${shop.slug}`);
+      }}
+      title={shop.name}
+    >
+      <span className="shop-inline__avatar">
+        {shop.logoUrl ? (
+          <img src={shop.logoUrl} alt={shop.name} />
+        ) : (
+          <span>{(shop.name || "S").slice(0, 1).toUpperCase()}</span>
+        )}
+      </span>
+      <span className="shop-inline__name">{shop.name}</span>
+    </button>
+  );
+}
+
+export default function ProductCard({ product, compact = false }) {
+  const navigate = useNavigate();
+  const img =
+    product.thumbnailUrl ||
+    "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=640&auto=format&fit=crop";
+
+  const goProduct = () => navigate(`/p/${encodeURIComponent(product.slug)}`);
 
   return (
-    <Link to={`/p/${encodeURIComponent(product.slug)}`} className="card overflow-hidden hover:border-slate-300">
-      <div className="aspect-[4/3] bg-slate-100">
-        <img src={img} alt={product.name} className="h-full w-full object-cover" loading="lazy" />
+    <div
+      className={compact ? "card product-card product-card--compact" : "card product-card"}
+      role="link"
+      tabIndex={0}
+      onClick={goProduct}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          goProduct();
+        }
+      }}
+    >
+      <div className="product-card__media" aria-hidden>
+        <img src={img} alt={product.name} className="product-card__img" loading="lazy" />
       </div>
-      <div className="p-4">
-        <div className="line-clamp-2 text-sm font-medium leading-snug">{product.name}</div>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="text-base font-semibold text-slate-900">{formatVND(product.price)}</div>
+      <div className="product-card__body">
+        <div className="product-card__name">{product.name}</div>
+
+        <div className="product-card__priceRow">
+          <div className="product-card__price">{formatVND(product.price)}</div>
           {product.compareAtPrice ? (
-            <div className="text-xs text-slate-400 line-through">{formatVND(product.compareAtPrice)}</div>
+            <div className="product-card__compare">{formatVND(product.compareAtPrice)}</div>
           ) : null}
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-600">
-          <div className="flex items-center gap-2">
+        <div className="product-card__metaRow">
+          <div className="product-card__rating">
             <RatingStars value={product.ratingAvg || 0} />
-            <span className="muted">({product.ratingCount || 0})</span>
+            <span className="product-card__ratingCount muted">({product.ratingCount || 0})</span>
           </div>
-          <div className="muted">Đã bán {product.soldCount || 0}</div>
+          <div className="product-card__sold muted">Đã bán {product.soldCount || 0}</div>
         </div>
 
-        <div className="mt-2 text-xs text-slate-500">{product.shop?.name || ""}</div>
+        {!compact ? (
+          <div className="product-card__shop">
+            <ShopInline shop={product.shop} onNavigate={navigate} />
+          </div>
+        ) : null}
       </div>
-    </Link>
+    </div>
   );
 }

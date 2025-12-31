@@ -1,0 +1,93 @@
+/* Open shop */
+
+.open-shop-page{ padding: 28px 0; }
+
+.open-shop-page__container{ }
+
+.open-shop-page__header{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.open-shop-page__title{
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.open-shop-page__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.open-shop-page__alert{ margin-top: 16px; }
+
+.open-shop-card{ margin-top: 16px; padding: 20px; }
+
+.open-shop-card__row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.open-shop-card__headline{ font-weight: 800; font-size: 14px; }
+
+.open-shop-card__meta{ margin-top: 6px; font-size: 13px; }
+
+.open-shop-card__shopName{ font-weight: 800; color: #0f172a; }
+
+.open-shop-card__note{ font-size: 13px; }
+
+.open-shop-card__reject{
+  margin-top: 8px;
+  font-size: 13px;
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.open-shop-status{
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.open-shop-status--approved{ background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.25); color: #047857; }
+.open-shop-status--rejected{ background: rgba(239, 68, 68, 0.09); border-color: rgba(239, 68, 68, 0.2); color: #b91c1c; }
+.open-shop-status--pending{ background: rgba(100, 116, 139, 0.12); border-color: rgba(100, 116, 139, 0.18); color: #475569; }
+
+.open-shop-form{ margin-top: 16px; padding: 20px; }
+
+.open-shop-form__grid{ display: grid; gap: 14px; }
+
+@media (min-width: 1024px){
+  .open-shop-form__grid{ grid-template-columns: 1fr 1fr; }
+}
+
+.open-shop-form__field{ display: grid; gap: 6px; }
+
+.open-shop-form__label{ margin: 0; }
+
+.open-shop-form__submit{ margin-top: 14px; }
+
+.open-shop-login{ margin-top: 16px; padding: 20px; }
+
+.open-shop-login__desc{ font-size: 13px; }
+
+.open-shop-login__btn{ margin-top: 12px; }
+
+.open-shop-needAuth{ display: grid; gap: 10px; justify-items: start; }
+
+.open-shop-needAuth__btn{ justify-content: center; }
+
+.open-shop-needAuth__text{ margin-top: 6px; font-size: 14px; }

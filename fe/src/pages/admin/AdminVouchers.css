@@ -1,0 +1,155 @@
+.admin-vouchers__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-vouchers__headerActions{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-vouchers__title{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-vouchers__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.admin-vouchers__alert{ margin-top: 14px; }
+
+.admin-vouchers__listCard{
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.admin-vouchers__cardTitle{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-vouchers__form{
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-vouchers__grid2{
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 768px){
+  .admin-vouchers__grid2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.admin-vouchers__checkRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #dbe0e6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.admin-vouchers__checkLabel{ font-size: 14px; }
+
+.admin-vouchers__formActions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.admin-vouchers__listHead{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-vouchers__skeleton{ margin-top: 14px; display: grid; gap: 10px; }
+
+.admin-vouchers__tableWrap{
+  margin-top: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-vouchers__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .admin-vouchers__table{ min-width: 760px; }
+}
+
+/* Column sizing (desktop). Keeps the table readable without forcing horizontal scroll. */
+.admin-vouchers__table thead th:nth-child(1){ width: 16%; }
+.admin-vouchers__table thead th:nth-child(2){ width: 10%; }
+.admin-vouchers__table thead th:nth-child(3){ width: 26%; }
+.admin-vouchers__table thead th:nth-child(4){ width: 18%; }
+.admin-vouchers__table thead th:nth-child(5){ width: 12%; }
+.admin-vouchers__table thead th:nth-child(6){ width: 18%; }
+
+.admin-vouchers__code{
+  font-weight: 600;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-vouchers__conditions{ font-size: 14px; }
+.admin-vouchers__validity{ font-size: 14px; }
+
+.admin-vouchers__used{ margin-top: 6px; font-size: 12px; color: #64748b; }
+
+.admin-vouchers__thRight,
+.admin-vouchers__tdRight{ text-align: right; }
+
+.admin-vouchers__rowActions{
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-vouchers__modalActions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-vouchers__footNote{
+  margin-top: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.admin-vouchers__empty{ margin-top: 14px; font-size: 14px; color: #64748b; }
+
+.admin-vouchers{ padding: 24px 0; }
+
+.admin-vouchers__tabCount{
+  margin-left: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Allow action buttons to wrap gracefully inside fixed columns */
+.admin-vouchers__rowActions .btn,
+.admin-vouchers__rowActions .btn-ghost,
+.admin-vouchers__rowActions .btn-secondary,
+.admin-vouchers__rowActions .btn-primary{
+  white-space: normal;
+}

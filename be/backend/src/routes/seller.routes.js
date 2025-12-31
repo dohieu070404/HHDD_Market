@@ -21,6 +21,7 @@ async function mustGetMyShop(userId) {
   const shop = await getMyShop(userId);
   if (!shop) throw httpError(404, "Bạn chưa có shop");
   if (shop.status === "PENDING") throw httpError(403, "Shop đang chờ duyệt");
+  if (shop.status === "REJECTED") throw httpError(403, "Shop đã bị từ chối duyệt");
   if (shop.status === "SUSPENDED") throw httpError(403, "Shop đang bị tạm khoá");
   return shop;
 }

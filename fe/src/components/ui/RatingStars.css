@@ -1,0 +1,30 @@
+.rating-stars{
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rating-stars__item{
+  position: relative;
+  display: inline-flex;
+}
+
+.rating-stars__star--empty{
+  color: #cbd5e1;
+}
+
+.rating-stars__fill{
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  height: 100%;
+}
+
+.rating-stars__star--fill{
+  color: #f59e0b;
+}
+
+.rating-stars__star{
+  display: block;
+}

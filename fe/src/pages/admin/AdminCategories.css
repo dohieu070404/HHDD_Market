@@ -1,0 +1,74 @@
+.admin-categories__panel{
+  padding: 18px;
+}
+
+.admin-categories__title{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-categories__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.admin-categories__formGrid{
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+@media (min-width: 768px){
+  .admin-categories__formGrid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.admin-categories__msg{ margin-top: 10px; font-size: 14px; color: #b91c1c; }
+
+.admin-categories__treeCard{ padding: 18px; }
+
+.admin-categories__loading{ color: #64748b; }
+
+.admin-categories__tree{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-categories__subtree{
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+  margin-left: 12px;
+  padding-left: 14px;
+  border-left: 1px solid #e2e8f0;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-categories__node{
+  padding: 12px;
+}
+
+.admin-categories__nodeHead{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-categories__meta{ min-width: 220px; }
+
+.admin-categories__name{ font-weight: 700; color: #0f172a; }
+.admin-categories__slug{ margin-top: 2px; font-size: 12px; }
+
+.admin-categories__actions{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-categories__deleteBtn{ color: #b91c1c; }
+
+.admin-categories{ padding: 24px 0; }
+.admin-categories__item{ padding: 12px 0; }

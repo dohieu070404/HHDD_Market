@@ -1,0 +1,118 @@
+.seller-orders__header{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 640px){
+  .seller-orders__header{
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.seller-orders__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-orders__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-orders__alert{ margin-top: 16px; }
+
+.seller-orders__loading{ margin-top: 20px; }
+
+.seller-orders__tableCard{
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.seller-orders__tableWrap{
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1024px){
+  .seller-orders__table{ min-width: 760px; }
+}
+
+.seller-orders__thRight,
+.seller-orders__tdRight{
+  text-align: right;
+}
+
+.seller-orders__code{
+  font-weight: 600;
+  display: block;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f172a;
+}
+
+.seller-orders__buyer{
+  font-weight: 600;
+  display: block;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #0f172a;
+}
+
+.seller-orders__meta{
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.seller-orders__total{
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+.seller-orders__actions{
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.seller-orders__hint{
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.seller-orders__empty{
+  padding: 26px 14px;
+  text-align: center;
+}
+
+.seller-orders__status{ white-space: nowrap; }
+
+.seller-orders{ padding: 24px 0; }
+
+/* Make the table fit on desktop without forcing horizontal scrolling */
+.seller-orders__table{ width: 100%; }
+.seller-orders__table thead th:nth-child(1){ width: 16%; }
+.seller-orders__table thead th:nth-child(2){ width: 22%; }
+.seller-orders__table thead th:nth-child(3){ width: 12%; }
+.seller-orders__table thead th:nth-child(4){ width: 14%; }
+.seller-orders__table thead th:nth-child(5){ width: 36%; }
+
+/* Allow action buttons to wrap gracefully inside fixed columns */
+.seller-orders__actions .btn,
+.seller-orders__actions .btn-ghost,
+.seller-orders__actions .btn-secondary,
+.seller-orders__actions .btn-primary{
+  white-space: normal;
+}

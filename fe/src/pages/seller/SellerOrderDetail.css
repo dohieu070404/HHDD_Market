@@ -1,0 +1,149 @@
+.seller-order-detail__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seller-order-detail__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-order-detail__meta{
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.seller-order-detail__dot{
+  color: #94a3b8;
+}
+
+.seller-order-detail__alert{
+  margin-top: 16px;
+}
+
+.seller-order-detail__loading,
+.seller-order-detail__empty{
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.seller-order-detail__grid{
+  margin-top: 20px;
+  display: grid;
+  gap: 24px;
+}
+
+@media (min-width: 1024px){
+  .seller-order-detail__grid{
+    grid-template-columns: 2fr 1fr;
+    align-items: start;
+  }
+}
+
+.seller-order-detail__products{
+  padding: 18px;
+}
+
+.seller-order-detail__side{
+  padding: 18px;
+}
+
+.seller-order-detail__sectionTitle{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-order-detail__tableWrap{
+  margin-top: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.seller-order-detail__thRight,
+.seller-order-detail__tdRight{
+  text-align: right;
+}
+
+.seller-order-detail__productName{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-order-detail__productSku{
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.seller-order-detail__qty,
+.seller-order-detail__price{
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.seller-order-detail__totalRow{
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.seller-order-detail__totalLabel{
+  font-size: 14px;
+}
+
+.seller-order-detail__totalValue{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-order-detail__actions{
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.seller-order-detail__noActions{
+  font-size: 14px;
+}
+
+.seller-order-detail__block{
+  margin-top: 18px;
+}
+
+.seller-order-detail__shipInfo{
+  margin-top: 10px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.seller-order-detail__shipName{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-order-detail__shipMuted{
+  margin-top: 2px;
+}
+
+.seller-order-detail__shipment{
+  margin-top: 6px;
+}
+
+.seller-order-detail__status{ white-space: nowrap; }
+
+.seller-order-detail{ padding: 24px 0; }
+.seller-order-detail__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .seller-order-detail__table{ min-width: 760px; }
+}

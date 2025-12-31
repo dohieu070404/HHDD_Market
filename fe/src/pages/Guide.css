@@ -1,0 +1,65 @@
+/* Guide */
+
+.guide-page{ padding: 28px 0; }
+
+.guide-header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.guide-header__title{
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.guide-header__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.guide-grid{ margin-top: 18px; display: grid; gap: 14px; }
+
+.guide-section{ padding: 20px; }
+
+.guide-section__title{ font-size: 18px; font-weight: 800; }
+
+.guide-section__desc{ margin-top: 6px; font-size: 14px; }
+
+.guide-section__hint{ margin-top: 10px; font-size: 12px; }
+
+.guide-accountList{ margin-top: 14px; display: grid; gap: 10px; }
+
+.guide-accountRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.guide-accountRow__label{ font-weight: 700; color: #334155; font-size: 14px; }
+
+.guide-accountRow__value{ font-family: var(--font-mono); font-size: 13px; color: #334155; }
+
+.guide-list{
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.guide-list--ordered{ list-style: decimal; }
+
+.guide-list--unordered{ list-style: disc; }
+
+.guide-page__container{
+  display: grid;
+  gap: 18px;
+}

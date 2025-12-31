@@ -1,0 +1,175 @@
+.admin-shell {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.admin-shell__topbar {
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.admin-shell__topbarInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.admin-shell__crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-shell__backLink {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.admin-shell__backLink:hover {
+  text-decoration: underline;
+}
+
+.admin-shell__crumbSep {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.admin-shell__crumbCurrent {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-shell__user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-shell__userEmail {
+  font-size: 14px;
+  color: #475569;
+}
+
+.admin-shell__content {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.admin-shell__sidebar {
+  padding: 16px;
+}
+
+.admin-shell__notFound {
+  padding: 20px;
+}
+
+.admin-nav__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.admin-nav {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.admin-nav__item {
+  display: block;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  text-decoration: none;
+}
+
+.admin-nav__item:hover {
+  background: #f1f5f9;
+}
+
+.admin-nav__item--active {
+  background: #0f172a;
+  color: #fff;
+}
+
+
+/* Responsive tweaks */
+.admin-shell__crumbs {
+  min-width: 0;
+}
+
+.admin-shell__crumbCurrent {
+  max-width: 52ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .admin-shell__topbarInner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-shell__user {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .admin-shell__crumbCurrent {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: 100%;
+  }
+}
+
+/* ===== Density / Wider admin layout ===== */
+.admin-shell .container-page {
+  max-width: 100%;
+  width: 100%;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Give more space to main content (avoid overflow clipping in wide tables) */
+.admin-shell .dashboard-main {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+
+  /* Narrow sidebar a bit so tables have more room */
+  .admin-shell .dashboard-sidebar {
+    width: 240px;
+  }
+
+  .admin-shell .dashboard-layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .admin-shell .container-page {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .admin-shell .container-page {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}

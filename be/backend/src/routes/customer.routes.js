@@ -336,6 +336,10 @@ function genOrderCode() {
   return `OD${Date.now()}${Math.random().toString(16).slice(2, 6)}`.toUpperCase();
 }
 
+function genGroupCode() {
+  return `GR${Date.now()}${Math.random().toString(16).slice(2, 6)}`.toUpperCase();
+}
+
 function calcItemPrice(sku, product) {
   const unitPrice = sku.price != null ? sku.price : product.price;
   return unitPrice;
@@ -429,6 +433,7 @@ router.post(
     }
 
     const createdOrders = [];
+    const groupCode = genGroupCode();
 
     await prisma.$transaction(async (tx) => {
       // For each shop -> create order
@@ -446,6 +451,7 @@ router.post(
         const order = await tx.order.create({
           data: {
             code,
+            groupCode,
             userId,
             shopId,
             status: body.paymentMethod === "COD" ? "PLACED" : "PLACED",
@@ -524,7 +530,149 @@ router.post(
     res.status(201).json({
       success: true,
       message: "Đã tạo đơn hàng",
-      data: { orders: createdOrders.map((o) => ({ id: o.id, code: o.code, status: o.status, total: o.total })) },
+      data: { groupCode, orders: createdOrders.map((o) => ({ id: o.id, code: o.code, status: o.status, total: o.total, shopId: o.shopId })) },
+    });
+  })
+);
+
+// --- Order groups (đặt nhiều shop trong 1 lần checkout) ---
+function deriveGroupStatus(statuses) {
+  if (!Array.isArray(statuses) || statuses.length === 0) return "PLACED";
+  const has = (s) => statuses.includes(s);
+  const some = (arr) => arr.some((s) => has(s));
+
+  if (statuses.every((s) => s === "COMPLETED")) return "COMPLETED";
+  if (has("DISPUTED")) return "DISPUTED";
+  if (has("REFUNDED")) return "REFUNDED";
+
+  if (some(["RETURN_REQUESTED", "RETURN_APPROVED", "RETURN_RECEIVED", "RETURNED"])) {
+    if (has("RETURN_REQUESTED")) return "RETURN_REQUESTED";
+    if (has("RETURN_APPROVED")) return "RETURN_APPROVED";
+    if (has("RETURN_RECEIVED")) return "RETURN_RECEIVED";
+    return "RETURNED";
+  }
+
+  if (some(["CANCEL_REQUESTED", "CANCELLED"])) {
+    if (has("CANCEL_REQUESTED")) return "CANCEL_REQUESTED";
+    return "CANCELLED";
+  }
+
+  if (has("DELIVERED")) return "DELIVERED";
+  if (has("SHIPPED")) return "SHIPPED";
+  if (has("PACKED")) return "PACKED";
+  if (has("CONFIRMED")) return "CONFIRMED";
+  if (has("PENDING_PAYMENT")) return "PENDING_PAYMENT";
+  return "PLACED";
+}
+
+router.get(
+  "/order-groups",
+  asyncHandler(async (req, res) => {
+    const userId = req.user.sub;
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit || 10)));
+    const skip = (page - 1) * limit;
+
+    // Lấy nhiều hơn để gom nhóm (vì 1 group có thể có nhiều order con)
+    const take = Math.min(500, page * limit * 6);
+
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      take,
+      include: {
+        shop: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    const groupsMap = new Map();
+    const groups = [];
+    for (const o of orders) {
+      const key = o.groupCode || o.code;
+      let g = groupsMap.get(key);
+      if (!g) {
+        g = {
+          groupCode: key,
+          createdAt: o.createdAt,
+          total: 0,
+          orderCount: 0,
+          shops: [],
+          statuses: [],
+        };
+        groupsMap.set(key, g);
+        groups.push(g);
+      }
+      g.total += o.total;
+      g.orderCount += 1;
+      g.statuses.push(o.status);
+      if (o.shop && !g.shops.find((s) => s.id === o.shop.id)) g.shops.push(o.shop);
+    }
+
+    // Tính status nhóm
+    for (const g of groups) {
+      g.status = deriveGroupStatus(g.statuses);
+      delete g.statuses;
+    }
+
+    // Tổng số group: scan nhẹ (demo)
+    const all = await prisma.order.findMany({
+      where: { userId },
+      select: { code: true, groupCode: true },
+    });
+    const totalGroups = new Set(all.map((o) => o.groupCode || o.code)).size;
+
+    const items = groups.slice(skip, skip + limit);
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        pagination: { page, limit, total: totalGroups, totalPages: Math.ceil(totalGroups / limit) },
+      },
+    });
+  })
+);
+
+router.get(
+  "/order-groups/:groupCode",
+  asyncHandler(async (req, res) => {
+    const userId = req.user.sub;
+    const groupCode = req.params.groupCode;
+
+    // groupCode có thể trùng với order.code (trường hợp order cũ)
+    const orders = await prisma.order.findMany({
+      where: {
+        userId,
+        OR: [{ groupCode }, { code: groupCode }],
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: { include: { product: true, sku: true } },
+        paymentTransactions: { orderBy: { createdAt: "desc" }, take: 1 },
+        shipment: { include: { events: { orderBy: { createdAt: "desc" } } } },
+        cancelRequest: true,
+        returnRequest: true,
+        refund: true,
+        dispute: true,
+        shop: { select: { id: true, name: true, slug: true } },
+      },
+    });
+
+    if (!orders || orders.length === 0) throw httpError(404, "Không tìm thấy đơn hàng");
+
+    const createdAt = orders[0].createdAt;
+    const total = orders.reduce((sum, o) => sum + o.total, 0);
+    const status = deriveGroupStatus(orders.map((o) => o.status));
+
+    res.json({
+      success: true,
+      data: {
+        groupCode,
+        createdAt,
+        total,
+        status,
+        orders,
+      },
     });
   })
 );

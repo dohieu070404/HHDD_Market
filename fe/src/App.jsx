@@ -9,14 +9,19 @@ import RequireRole from "./components/auth/RequireRole";
 import Home from "./pages/Home";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
+import ShopDetail from "./pages/ShopDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
+import OrderGroupDetail from "./pages/OrderGroupDetail";
 import OrderDetail from "./pages/OrderDetail";
 import Profile from "./pages/Profile";
 import OpenShop from "./pages/OpenShop";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Guide from "./pages/Guide";
+import Complaints from "./pages/Complaints";
+import Reviews from "./pages/Reviews";
 import NotFound from "./pages/NotFound";
 
 import SellerApp from "./pages/seller/SellerApp";
@@ -32,6 +37,7 @@ export default function App() {
               <Route index element={<Home />} />
               <Route path="products" element={<Products />} />
               <Route path="p/:slug" element={<ProductDetail />} />
+              <Route path="shop/:slug" element={<ShopDetail />} />
               <Route path="cart" element={<Cart />} />
               <Route
                 path="checkout"
@@ -50,10 +56,34 @@ export default function App() {
                 }
               />
               <Route
-                path="orders/:code"
+                path="complaints"
+                element={
+                  <RequireAuth>
+                    <Complaints />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="reviews"
+                element={
+                  <RequireAuth>
+                    <Reviews />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="orders/o/:code"
                 element={
                   <RequireAuth>
                     <OrderDetail />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="orders/:code"
+                element={
+                  <RequireAuth>
+                    <OrderGroupDetail />
                   </RequireAuth>
                 }
               />
@@ -73,6 +103,8 @@ export default function App() {
                   </RequireAuth>
                 }
               />
+
+              <Route path="guide" element={<Guide />} />
 
               <Route path="login" element={<Login />} />
               <Route path="register" element={<Register />} />

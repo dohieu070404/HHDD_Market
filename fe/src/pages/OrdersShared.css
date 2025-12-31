@@ -1,0 +1,159 @@
+/* Shared styles for Orders / Order Detail / Order Group Detail */
+
+.orderCardHeader{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.orderItemRow{
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+.orderThumb{
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  overflow: hidden;
+}
+
+.orderThumb img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.orderMetaGrid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.metaPills{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.metaPill{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+.priceRow{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.orderTimeline{
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.timelineRow{
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.timelineDot{
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #cbd5e1;
+  margin-top: 3px;
+}
+
+.timelineDot.isDone{ border-color: rgba(13, 92, 182, 0.65); background: rgba(13, 92, 182, 0.10); }
+
+/* Local modal used by Orders pages */
+.modalBackdrop{
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modalCard{
+  width: min(560px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.modalHeader{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modalTitle{ font-weight: 800; letter-spacing: -0.02em; }
+
+.iconBtn{
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.iconBtn:hover{ background: #f8fafc; }
+
+.modalBody{ padding: 16px; }
+
+.modalFooter{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #fafafa;
+}
+
+.starPicker{ display: flex; gap: 8px; justify-content: center; padding: 6px 0 10px; }
+
+.starBtn{
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.starBtn:hover{ transform: translateY(-1px); border-color: #cbd5e1; }

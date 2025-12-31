@@ -71,6 +71,7 @@ router.get(
 
     const where = {
       status: "ACTIVE",
+      shop: { status: "ACTIVE" },
     };
 
     if (q) {
@@ -142,8 +143,8 @@ router.get(
   "/products/:slug",
   asyncHandler(async (req, res) => {
     const slug = req.params.slug;
-    const product = await prisma.product.findUnique({
-      where: { slug },
+    const product = await prisma.product.findFirst({
+      where: { slug, status: "ACTIVE", shop: { status: "ACTIVE" } },
       include: {
         shop: { select: { id: true, name: true, slug: true, ratingAvg: true, ratingCount: true } },
         category: { select: { id: true, name: true, slug: true } },

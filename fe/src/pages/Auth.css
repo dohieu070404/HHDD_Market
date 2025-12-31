@@ -1,186 +1,133 @@
-/* ===== Screen ===== */
-.authScreen {
-  min-height: 100vh;
+/* Auth pages (Login/Register) - shared */
+
+.auth-page__container{
+  padding-top: 40px;
+  padding-bottom: 40px;
   display: flex;
-  align-items: center;
   justify-content: center;
-
-  background:
-    radial-gradient(900px 420px at 20% 20%, rgba(124, 58, 237, 0.35), transparent 60%),
-    radial-gradient(800px 360px at 70% 20%, rgba(34, 211, 238, 0.25), transparent 60%),
-    var(--bg0);
 }
 
-/* ===== Card ===== */
-.authCard {
-  width: 420px;
-  padding: 32px 28px;
-  border-radius: 20px;
-
-  background: rgba(5, 8, 16, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(18px);
-
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+.auth-card{
+  width: min(420px, 100%);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
 }
 
-/* ===== Brand ===== */
-.authBrand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.auth-card__title{
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
 }
 
-.brandMarkLg {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #7c3aed, #22d3ee);
-  box-shadow: 0 14px 44px rgba(124, 58, 237, 0.35);
-}
-
-.authTitle {
-  font-weight: 900;
-  font-size: 22px;
-}
-
-.authSub {
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-/* ===== Form ===== */
-.authForm {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-/* ===== Input ===== */
-.input {
-  width: 100%;
-  height: 44px;
-  padding: 0 14px;
-
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-
+.auth-card__subtitle{
+  margin: 6px 0 0;
   font-size: 14px;
-  color: var(--text);
 }
 
-.input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.input:focus {
-  outline: none;
-  border-color: rgba(124, 58, 237, 0.9);
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.25);
-}
-
-/* ===== Password Row ===== */
-.pwRow {
-  position: relative;
-  width: 100%;
-}
-
-.pwRow .input {
-  padding-right: 68px;
-}
-
-.pwBtn {
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 10px;
-
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.pwBtn:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-/* ===== Buttons ===== */
-.btnPrimary {
-  height: 46px;
-  margin-top: 6px;
-
+.auth-card__alert{
+  margin-top: 14px;
   border-radius: 14px;
-  border: none;
-
+  border: 1px solid #fee2e2;
+  background: #fef2f2;
+  padding: 12px;
   font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-
-  background: linear-gradient(135deg, #7c3aed, #22d3ee);
-  cursor: pointer;
 }
 
-.btnPrimary:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
+.auth-card__alert--error{ color: #b91c1c; }
+
+.auth-form{
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
 }
 
-/* ===== Alerts ===== */
-.authAlert,
-.authOk {
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-size: 13px;
+.auth-form__field{
+  display: grid;
+  gap: 6px;
 }
 
-.authAlert {
-  border: 1px solid rgba(255, 99, 99, 0.35);
-  background: rgba(255, 99, 99, 0.12);
-}
+.auth-form__label{ margin: 0; }
 
-.authOk {
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  background: rgba(34, 197, 94, 0.12);
-}
-
-/* ===== Footer ===== */
-.authFoot {
+.auth-form__submit{
+  width: 100%;
+  justify-content: center;
   margin-top: 6px;
-  font-size: 13px;
-  color: var(--muted);
 }
 
-.authFoot a {
-  color: rgba(34, 211, 238, 0.95);
-  text-decoration: none;
+.auth-card__footer{
+  margin-top: 16px;
+  font-size: 14px;
 }
 
-.authFoot a:hover {
+.auth-card__footerLink{
+  color: #0f172a;
+  font-weight: 800;
   text-decoration: underline;
 }
 
-/* ===== Responsive ===== */
-@media (max-width: 520px) {
-  .authCard {
-    width: 92%;
-    padding: 26px 22px;
-  }
+/* Password strength */
+.auth-strength{
+  margin-top: 10px;
+}
+
+.auth-strength__row{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-strength__label{
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.auth-strength__bar{
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.auth-strength__barFill{
+  height: 100%;
+  background: #0f172a;
+}
+
+/* Tips */
+.auth-tips{
+  margin-top: 18px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 14px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.auth-tips__title{
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.auth-tips__list{
+  margin: 10px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.auth-page{
+  padding: 28px 0;
+}
+
+.auth-strength__text{
+  font-size: 13px;
+}
+
+.auth-strength__hint{
+  font-size: 12px;
+  margin-top: 2px;
 }

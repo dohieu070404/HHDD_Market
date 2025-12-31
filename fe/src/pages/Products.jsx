@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import "./Products.css";
 import { Link, useSearchParams } from "react-router-dom";
 import { publicApi } from "../api/public";
 import ProductCard from "../components/product/ProductCard";
@@ -11,30 +12,24 @@ function toNumOrNull(v) {
 
 function CategoryTree({ categories, selectedSlug, onSelect }) {
   return (
-    <div className="space-y-1">
+    <div className="products-filter__tree">
       {categories.map((c) => (
         <div key={c.id}>
           <button
             type="button"
             onClick={() => onSelect(c.slug)}
-            className={
-              "w-full text-left rounded-lg px-3 py-2 text-sm hover:bg-slate-50 " +
-              (selectedSlug === c.slug ? "bg-slate-100 font-semibold" : "")
-            }
+            className={selectedSlug === c.slug ? "products-filter__item products-filter__item--active" : "products-filter__item"}
           >
             {c.name}
           </button>
           {c.children?.length ? (
-            <div className="ml-3 mt-1 space-y-1 border-l border-slate-200 pl-3">
+            <div className="products-filter__children">
               {c.children.map((ch) => (
                 <button
                   key={ch.id}
                   type="button"
                   onClick={() => onSelect(ch.slug)}
-                  className={
-                    "w-full text-left rounded-lg px-3 py-2 text-sm hover:bg-slate-50 " +
-                    (selectedSlug === ch.slug ? "bg-slate-100 font-semibold" : "")
-                  }
+                  className={selectedSlug === ch.slug ? "products-filter__item products-filter__item--active" : "products-filter__item"}
                 >
                   {ch.name}
                 </button>
@@ -52,6 +47,7 @@ export default function Products() {
 
   const q = searchParams.get("q") || "";
   const category = searchParams.get("category") || "";
+  const shop = searchParams.get("shop") || "";
   const sort = searchParams.get("sort") || "new";
   const page = Math.max(1, Number(searchParams.get("page") || 1));
   const minPrice = searchParams.get("minPrice") || "";
@@ -87,10 +83,7 @@ export default function Products() {
     (async () => {
       try {
         setLoading(true);
-        const res = await publicApi.listProducts({
-          q,
-          category,
-          sort,
+        const res = await publicApi.listProducts({ q, category, shop, sort,
           minPrice: toNumOrNull(minPrice),
           maxPrice: toNumOrNull(maxPrice),
           minRating: toNumOrNull(minRating),
@@ -125,57 +118,59 @@ export default function Products() {
   const pagination = list.pagination || { page: 1, totalPages: 1 };
 
   return (
-    <div className="container-page py-8">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-semibold">Sản phẩm</h1>
-          <p className="muted text-sm">Tìm kiếm, lọc theo danh mục – sắp xếp theo giá / đánh giá / tên.</p>
+    <div className="products-page">
+      <div className="container-page products-page__container">
+        <div className="products-page__header">
+          <div className="products-page__heading">
+            <h1 className="products-page__title">Sản phẩm</h1>
+            <p className="products-page__subtitle muted">Tìm kiếm, lọc theo danh mục – sắp xếp theo giá / đánh giá / tên.</p>
+          </div>
+
+          <div className="products-page__sort">
+            <label className="products-page__sortLabel">Sắp xếp:</label>
+            <select
+              className="select products-page__sortSelect"
+              value={sort}
+              onChange={(e) => updateParam({ sort: e.target.value, page: 1 })}
+            >
+              {sortOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-slate-600">Sắp xếp:</label>
-          <select className="select w-56" value={sort} onChange={(e) => updateParam({ sort: e.target.value, page: 1 })}>
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+        <div className="layout-sidebar-280 products-page__grid">
+          <aside className="card products-filter">
+            <div className="products-filter__title">Bộ lọc</div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[280px_1fr]">
-        <aside className="card p-4 h-fit">
-          <div className="text-sm font-semibold">Bộ lọc</div>
-
-          <div className="mt-4">
-            <div className="label mb-2">Danh mục</div>
+          <div className="products-filter__section">
+            <div className="label products-filter__sectionLabel">Danh mục</div>
             <button
               type="button"
-              className={
-                "w-full text-left rounded-lg px-3 py-2 text-sm hover:bg-slate-50 " +
-                (!category ? "bg-slate-100 font-semibold" : "")
-              }
+              className={!category ? "products-filter__item products-filter__item--active" : "products-filter__item"}
               onClick={() => updateParam({ category: "", page: 1 })}
             >
               Tất cả
             </button>
-            <div className="mt-2">
+            <div className="products-filter__treeWrap">
               <CategoryTree categories={categories} selectedSlug={category} onSelect={(slug) => updateParam({ category: slug, page: 1 })} />
             </div>
           </div>
 
-          <div className="mt-6">
-            <div className="label mb-2">Khoảng giá</div>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="products-filter__section">
+            <div className="label products-filter__sectionLabel">Khoảng giá</div>
+            <div className="products-filter__priceRow">
               <input
-                className="input"
+                className="input products-filter__priceInput"
                 placeholder="Từ"
                 value={minPrice}
                 onChange={(e) => updateParam({ minPrice: e.target.value })}
               />
               <input
-                className="input"
+                className="input products-filter__priceInput"
                 placeholder="Đến"
                 value={maxPrice}
                 onChange={(e) => updateParam({ maxPrice: e.target.value })}
@@ -183,10 +178,10 @@ export default function Products() {
             </div>
           </div>
 
-          <div className="mt-6">
-            <div className="label mb-2">Đánh giá tối thiểu</div>
+          <div className="products-filter__section">
+            <div className="label products-filter__sectionLabel">Đánh giá tối thiểu</div>
             <select
-              className="select"
+              className="select products-filter__ratingSelect"
               value={minRating}
               onChange={(e) => updateParam({ minRating: e.target.value, page: 1 })}
             >
@@ -198,31 +193,31 @@ export default function Products() {
             </select>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="products-filter__footer">
             <Link
               to={`/products${q ? `?q=${encodeURIComponent(q)}` : ""}`}
-              className="text-sm text-slate-600 hover:text-slate-900"
+              className="products-filter__clear"
             >
               Xóa lọc
             </Link>
-            <div className="text-xs muted">Tổng: {pagination.total || 0}</div>
+            <div className="products-filter__total muted">Tổng: {pagination.total || 0}</div>
           </div>
         </aside>
 
-        <section>
+        <section className="products-results">
           {loading ? (
-            <div className="card p-6">Đang tải...</div>
+            <div className="card products-results__message">Đang tải...</div>
           ) : error ? (
-            <div className="card p-6 text-red-600">{error}</div>
+            <div className="card products-results__message products-results__message--error">{error}</div>
           ) : list.items?.length ? (
             <>
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
+              <div className="products-results__grid">
                 {list.items.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
               </div>
 
-              <div className="mt-6 flex items-center justify-between">
+              <div className="products-results__pagination">
                 <button
                   className="btn-secondary"
                   disabled={pagination.page <= 1}
@@ -230,7 +225,7 @@ export default function Products() {
                 >
                   Trang trước
                 </button>
-                <div className="text-sm text-slate-600">
+                <div className="products-results__pageInfo">
                   Trang {pagination.page} / {pagination.totalPages}
                 </div>
                 <button
@@ -243,9 +238,10 @@ export default function Products() {
               </div>
             </>
           ) : (
-            <div className="card p-6">Không có sản phẩm phù hợp.</div>
+            <div className="card products-results__message">Không có sản phẩm phù hợp.</div>
           )}
         </section>
+        </div>
       </div>
     </div>
   );

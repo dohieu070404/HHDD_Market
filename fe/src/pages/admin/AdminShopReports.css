@@ -1,0 +1,99 @@
+.admin-shop-reports__header{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-shop-reports__title{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-shop-reports__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.admin-shop-reports__filters{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-shop-reports__select{ min-width: 180px; }
+
+.admin-shop-reports__alert{ margin-top: 14px; }
+
+.admin-shop-reports__tableCard{
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.admin-shop-reports__tableWrap{
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-shop-reports__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .admin-shop-reports__table{ min-width: 900px; }
+}
+
+.admin-shop-reports__shopName{ font-weight: 700; color: #0f172a; }
+
+.admin-shop-reports__shopLink{
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #475569;
+  text-decoration: none;
+}
+
+.admin-shop-reports__shopLink:hover{ text-decoration: underline; }
+
+.admin-shop-reports__shopStatus{ margin-top: 6px; }
+
+.admin-shop-reports__reporter{ font-size: 14px; color: #334155; }
+
+.admin-shop-reports__reason{ font-weight: 700; color: #0f172a; }
+
+.admin-shop-reports__desc,
+.admin-shop-reports__resolutionNote{
+  margin-top: 6px;
+  font-size: 12px;
+  color: #475569;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-shop-reports__severity{ font-size: 14px; color: #475569; }
+
+.admin-shop-reports__resolution{ font-weight: 700; color: #0f172a; }
+
+.admin-shop-reports__points{ font-size: 14px; color: #334155; }
+
+.admin-shop-reports__state{ }
+
+.admin-shop-reports__date{ font-size: 14px; color: #475569; }
+
+.admin-shop-reports__thRight,
+.admin-shop-reports__tdRight{ text-align: right; }
+
+.admin-shop-reports__actions{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-shop-reports__resolvedNote{ font-size: 12px; color: #64748b; }
+
+.admin-shop-reports__empty{ padding: 16px; text-align: center; font-size: 14px; color: #64748b; }
+
+.admin-shop-reports__tdRight{ text-align: right; }
+
+.admin-shop-reports{ padding: 24px 0; }

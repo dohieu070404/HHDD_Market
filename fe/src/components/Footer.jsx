@@ -12,10 +12,10 @@ export default function Footer() {
 
         <div className="footer-right">
           <a className="footer-link" href="https://localhost" onClick={(e) => e.preventDefault()}>
-            Terms
+            Điều khoản
           </a>
           <a className="footer-link" href="https://localhost" onClick={(e) => e.preventDefault()}>
-            Privacy
+            Quyền riêng tư
           </a>
           <span className="footer-muted">© {new Date().getFullYear()}</span>
         </div>

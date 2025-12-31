@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { customerApi } from "../api/customer";
 import { authApi } from "../api/auth";
 import { useAuth } from "../contexts/AuthContext";
 import { passwordStrength } from "../utils/passwordStrength";
+import ImageCropModal from "../components/ImageCropModal";
+import { uploadWithProgress } from "../utils/uploadWithProgress";
+import { useToast } from "../contexts/ToastContext";
+import "./Profile.css";
 
 export default function Profile() {
   const { user, refreshMe } = useAuth();
@@ -12,9 +16,16 @@ export default function Profile() {
   const [message, setMessage] = useState(null);
 
   const [form, setForm] = useState({ name: "", phone: "", avatarUrl: "" });
+  const fileRef = useRef(null);
+  const { push } = useToast();
+  const [pendingFile, setPendingFile] = useState(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPct, setAvatarPct] = useState(0);
+  const [avatarBuster, setAvatarBuster] = useState(0);
   const [pwd, setPwd] = useState({ oldPassword: "", newPassword: "", confirm: "" });
 
-  const [newAddr, setNewAddr] = useState({ fullName: "", phone: "", addressLine1: "", city: "", district: "", ward: "", postalCode: "", isDefault: false });
+  const [newAddr, setNewAddr] = useState({ fullName: "", phone: "", line1: "", city: "", district: "", ward: "", postalCode: "", isDefault: false });
   const [editing, setEditing] = useState(null); // {id, form}
 
   const pwStrength = useMemo(() => passwordStrength(pwd.newPassword), [pwd.newPassword]);
@@ -59,6 +70,54 @@ export default function Profile() {
     }
   }
 
+  function onAvatarFileChange(e) {
+    const f = e.target.files?.[0] || null;
+    if (!f) return;
+    if (!/^image\//.test(f.type)) {
+      push({ type: "error", title: "Không hợp lệ", message: "Vui lòng chọn ảnh (jpg/png/webp)." });
+      return;
+    }
+    if (f.size > 4 * 1024 * 1024) {
+      push({ type: "error", title: "Ảnh quá lớn", message: "Tối đa 4MB." });
+      return;
+    }
+    setPendingFile(f);
+    setCropOpen(true);
+    // reset input so selecting same file again still triggers change
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function uploadAvatarCropped(blob) {
+    if (!blob) return;
+    setAvatarUploading(true);
+    setAvatarPct(0);
+    try {
+      const fd = new FormData();
+      fd.append("avatar", blob, "avatar.jpg");
+      const res = await uploadWithProgress({
+        path: "/customer/profile/avatar",
+        formData: fd,
+        onProgress: setAvatarPct,
+      });
+      if (res?.success) {
+        setForm((s) => ({ ...s, avatarUrl: res.data?.avatarUrl || s.avatarUrl }));
+        setAvatarBuster(Date.now());
+        push({ type: "success", title: "Thành công", message: "Đã cập nhật ảnh đại diện" });
+        await refreshMe();
+        await load();
+      } else {
+        push({ type: "error", title: "Thất bại", message: res?.message || "Upload thất bại" });
+      }
+    } catch (e) {
+      push({ type: "error", title: "Thất bại", message: e?.data?.message || "Upload thất bại" });
+    } finally {
+      setAvatarUploading(false);
+      setAvatarPct(0);
+      setPendingFile(null);
+      setCropOpen(false);
+    }
+  }
+
   async function changePassword() {
     setMessage(null);
     if (!pwd.oldPassword || !pwd.newPassword) {
@@ -82,7 +141,7 @@ export default function Profile() {
     setMessage(null);
     const res = await customerApi.createAddress(newAddr);
     if (res?.success) {
-      setNewAddr({ fullName: "", phone: "", addressLine1: "", city: "", district: "", ward: "", postalCode: "", isDefault: false });
+      setNewAddr({ fullName: "", phone: "", line1: "", city: "", district: "", ward: "", postalCode: "", isDefault: false });
       setMessage({ type: "success", text: "Đã thêm địa chỉ" });
       await load();
     } else {
@@ -118,7 +177,7 @@ export default function Profile() {
     const res = await customerApi.updateAddress(id, {
       fullName: f.fullName,
       phone: f.phone,
-      addressLine1: f.addressLine1,
+      line1: f.line1,
       city: f.city,
       district: f.district,
       ward: f.ward,
@@ -135,196 +194,246 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="container-page py-10">
-        <div className="card p-6">Đang tải...</div>
+      <div className="profile-page">
+        <div className="container-page profile-page__container">
+          <div className="card profile-page__message">Đang tải...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container-page py-8">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Hồ sơ</h1>
-          <p className="muted text-sm">Quản lý thông tin cá nhân và địa chỉ giao hàng.</p>
+    <div className="profile-page">
+      <div className="container-page profile-page__container">
+        <div className="profile-page__header">
+          <div className="profile-page__heading">
+            <h1 className="profile-page__title">Hồ sơ</h1>
+            <p className="muted profile-page__subtitle">Quản lý thông tin cá nhân và địa chỉ giao hàng.</p>
+          </div>
+          <div className="muted profile-page__email">{user?.email}</div>
         </div>
-        <div className="text-sm muted">{user?.email}</div>
-      </div>
 
-      {message ? (
-        <div className={"mt-4 card p-4 " + (message.type === "error" ? "text-red-700 bg-red-50 border-red-100" : "text-emerald-800 bg-emerald-50 border-emerald-100")}>{message.text}</div>
-      ) : null}
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="card p-6">
-          <h2 className="text-sm font-semibold">Thông tin cá nhân</h2>
-          <div className="mt-4 grid gap-3">
-            <div>
-              <div className="label mb-1">Tên hiển thị</div>
-              <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <div className="label mb-1">Số điện thoại</div>
-              <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </div>
-            <div>
-              <div className="label mb-1">Avatar URL</div>
-              <input className="input" value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
-              <div className="muted text-xs mt-1">Bạn có thể dán link ảnh (https://...)</div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button className="btn-primary" onClick={saveProfile}>Lưu</button>
-              {form.avatarUrl ? (
-                <img src={form.avatarUrl} alt="avatar" className="h-10 w-10 rounded-full object-cover border border-slate-200" />
-              ) : null}
-            </div>
+        {message ? (
+          <div className={message.type === "error" ? "card profile-page__alert profile-page__alert--error" : "card profile-page__alert profile-page__alert--success"}>
+            {message.text}
           </div>
-        </section>
+        ) : null}
 
-        <section className="card p-6">
-          <h2 className="text-sm font-semibold">Đổi mật khẩu</h2>
-          <div className="mt-4 grid gap-3">
-            <div>
-              <div className="label mb-1">Mật khẩu cũ</div>
-              <input type="password" className="input" value={pwd.oldPassword} onChange={(e) => setPwd({ ...pwd, oldPassword: e.target.value })} />
-            </div>
-            <div>
-              <div className="label mb-1">Mật khẩu mới</div>
-              <input type="password" className="input" value={pwd.newPassword} onChange={(e) => setPwd({ ...pwd, newPassword: e.target.value })} />
-              <div className="mt-2 flex items-center justify-between text-xs">
-                <div className="muted">Độ mạnh: <span className="font-medium text-slate-900">{pwStrength.label}</span></div>
-                <div className="muted">Gợi ý: 8+ ký tự, chữ hoa/thường, số, ký tự đặc biệt</div>
+        <div className="profile-page__topGrid">
+          <section className="card profile-section">
+            <h2 className="profile-section__title">Thông tin cá nhân</h2>
+            <div className="profile-section__form">
+              <div>
+                <div className="label">Tên hiển thị</div>
+                <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                <div className="h-full bg-slate-800" style={{ width: `${(pwStrength.score / 4) * 100}%` }} />
+              <div>
+                <div className="label">Số điện thoại</div>
+                <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
-            </div>
-            <div>
-              <div className="label mb-1">Nhập lại</div>
-              <input type="password" className="input" value={pwd.confirm} onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })} />
-            </div>
-            <button className="btn-primary" onClick={changePassword}>Đổi mật khẩu</button>
-          </div>
-        </section>
-      </div>
+              <div>
+                <div className="label">Ảnh đại diện</div>
+                <div className="profile-avatar">
+                  <div className="profile-avatar__preview">
+                    {form.avatarUrl ? (
+                      <img
+                        src={`${form.avatarUrl}${form.avatarUrl.includes("?") ? "&" : "?"}t=${avatarBuster || 0}`}
+                        alt="avatar"
+                      />
+                    ) : null}
+                  </div>
 
-      <div className="mt-6 card p-6">
-        <h2 className="text-sm font-semibold">Địa chỉ giao hàng</h2>
+                  <div className="profile-avatar__controls">
+                    <button type="button" className="link-strong" onClick={() => fileRef.current?.click()}>
+                      Tải ảnh lên
+                    </button>
+                    <div className="hint">(JPG/PNG/WEBP, tối đa 4MB)</div>
+                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={onAvatarFileChange} />
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <div className="space-y-3">
-            {addresses.length ? (
-              addresses.map((a) => (
-                <div key={a.id} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium">
-                        {a.fullName} <span className="muted">({a.phone})</span>
-                        {a.isDefault ? <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs">Mặc định</span> : null}
+                    {avatarUploading ? (
+                      <div className="profile-avatar__upload">
+                        <div className="progress"><div style={{ width: `${avatarPct}%` }} /></div>
+                        <div className="muted profile-avatar__uploadText">Đang tải {avatarPct}%</div>
                       </div>
-                      <div className="muted text-sm">{a.addressLine1}, {a.ward}, {a.district}, {a.city}</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button className="btn-ghost" onClick={() => startEdit(a)}>Sửa</button>
-                      <button className="btn-ghost text-red-600" onClick={() => delAddress(a.id)}>Xóa</button>
-                    </div>
+                    ) : null}
                   </div>
-                  {!a.isDefault ? (
-                    <button className="btn-secondary mt-3" onClick={() => setDefault(a.id)}>Đặt mặc định</button>
-                  ) : null}
                 </div>
-              ))
-            ) : (
-              <div className="muted text-sm">Chưa có địa chỉ.</div>
-            )}
-          </div>
 
-          <div className="space-y-3">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <div className="font-medium">Thêm địa chỉ mới</div>
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div>
-                  <div className="label mb-1">Họ và tên</div>
-                  <input className="input" value={newAddr.fullName} onChange={(e) => setNewAddr({ ...newAddr, fullName: e.target.value })} />
-                </div>
-                <div>
-                  <div className="label mb-1">SĐT</div>
-                  <input className="input" value={newAddr.phone} onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })} />
-                </div>
-                <div className="md:col-span-2">
-                  <div className="label mb-1">Địa chỉ</div>
-                  <input className="input" value={newAddr.addressLine1} onChange={(e) => setNewAddr({ ...newAddr, addressLine1: e.target.value })} />
-                </div>
-                <div>
-                  <div className="label mb-1">Thành phố</div>
-                  <input className="input" value={newAddr.city} onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })} />
-                </div>
-                <div>
-                  <div className="label mb-1">Quận/Huyện</div>
-                  <input className="input" value={newAddr.district} onChange={(e) => setNewAddr({ ...newAddr, district: e.target.value })} />
-                </div>
-                <div>
-                  <div className="label mb-1">Phường/Xã</div>
-                  <input className="input" value={newAddr.ward} onChange={(e) => setNewAddr({ ...newAddr, ward: e.target.value })} />
-                </div>
-                <div>
-                  <div className="label mb-1">Mã bưu điện</div>
-                  <input className="input" value={newAddr.postalCode} onChange={(e) => setNewAddr({ ...newAddr, postalCode: e.target.value })} />
-                </div>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={newAddr.isDefault} onChange={(e) => setNewAddr({ ...newAddr, isDefault: e.target.checked })} />
-                  Đặt làm mặc định
-                </label>
+                <details className="profile-avatar__alt">
+                  <summary className="profile-avatar__altSummary">Hoặc dán Avatar URL</summary>
+                  <div className="profile-avatar__altBody">
+                    <input className="input" value={form.avatarUrl} onChange={(e) => setForm({ ...form, avatarUrl: e.target.value })} />
+                    <div className="muted profile-avatar__altHint">Bạn có thể dán link ảnh (https://...)</div>
+                  </div>
+                </details>
               </div>
-              <button className="btn-primary mt-4" onClick={addAddress}>Thêm địa chỉ</button>
+              <div className="profile-section__actions">
+                <button className="btn-primary" onClick={saveProfile}>Lưu</button>
+              </div>
+            </div>
+          </section>
+
+          <section className="card profile-section">
+            <h2 className="profile-section__title">Đổi mật khẩu</h2>
+            <div className="profile-section__form">
+              <div>
+                <div className="label">Mật khẩu cũ</div>
+                <input type="password" className="input" value={pwd.oldPassword} onChange={(e) => setPwd({ ...pwd, oldPassword: e.target.value })} />
+              </div>
+              <div>
+                <div className="label">Mật khẩu mới</div>
+                <input type="password" className="input" value={pwd.newPassword} onChange={(e) => setPwd({ ...pwd, newPassword: e.target.value })} />
+                <div className="profile-strength">
+                  <div className="profile-strength__row">
+                    <div className="muted profile-strength__text">
+                      Độ mạnh: <span className="profile-strength__label">{pwStrength.label}</span>
+                    </div>
+                    <div className="muted profile-strength__hint">Gợi ý: 8+ ký tự, chữ hoa/thường, số, ký tự đặc biệt</div>
+                  </div>
+                  <div className="profile-strength__bar" aria-hidden>
+                    <div className="profile-strength__barFill" style={{ width: `${(pwStrength.score / 4) * 100}%` }} />
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="label">Nhập lại</div>
+                <input type="password" className="input" value={pwd.confirm} onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })} />
+              </div>
+              <button className="btn-primary" onClick={changePassword}>Đổi mật khẩu</button>
+            </div>
+          </section>
+        </div>
+
+        <div className="card profile-addresses">
+          <h2 className="profile-addresses__title">Địa chỉ giao hàng</h2>
+
+          <div className="profile-addresses__grid">
+            <div className="profile-addresses__list">
+              {addresses.length ? (
+                addresses.map((a) => (
+                  <div key={a.id} className="card profile-address">
+                    <div className="profile-address__head">
+                      <div>
+                        <div className="profile-address__name">
+                          {a.fullName} <span className="muted">({a.phone})</span>
+                          {a.isDefault ? <span className="profile-address__badge">Mặc định</span> : null}
+                        </div>
+                        <div className="muted profile-address__line">{a.line1}, {a.ward}, {a.district}, {a.city}</div>
+                      </div>
+                      <div className="profile-address__actions">
+                        <button className="btn-ghost" onClick={() => startEdit(a)}>Sửa</button>
+                        <button className="btn-ghost btn-ghost--danger" onClick={() => delAddress(a.id)}>Xóa</button>
+                      </div>
+                    </div>
+                    {!a.isDefault ? (
+                      <button className="btn-secondary profile-address__defaultBtn" onClick={() => setDefault(a.id)}>Đặt mặc định</button>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <div className="muted profile-addresses__empty">Chưa có địa chỉ.</div>
+              )}
             </div>
 
-            {editing ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <div className="font-medium">Sửa địa chỉ</div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="profile-addresses__side">
+              <div className="card profile-addressForm profile-addressForm--new">
+                <div className="profile-addressForm__title">Thêm địa chỉ mới</div>
+                <div className="profile-addressForm__fields">
                   <div>
-                    <div className="label mb-1">Họ và tên</div>
-                    <input className="input" value={editing.form.fullName} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, fullName: e.target.value } })} />
-                  </div>
-                  <div>
-                    <div className="label mb-1">SĐT</div>
-                    <input className="input" value={editing.form.phone} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, phone: e.target.value } })} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <div className="label mb-1">Địa chỉ</div>
-                    <input className="input" value={editing.form.addressLine1} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, addressLine1: e.target.value } })} />
+                    <div className="label">Họ và tên</div>
+                    <input className="input" value={newAddr.fullName} onChange={(e) => setNewAddr({ ...newAddr, fullName: e.target.value })} />
                   </div>
                   <div>
-                    <div className="label mb-1">Thành phố</div>
-                    <input className="input" value={editing.form.city} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, city: e.target.value } })} />
+                    <div className="label">SĐT</div>
+                    <input className="input" value={newAddr.phone} onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })} />
+                  </div>
+                  <div className="profile-addressForm__field profile-addressForm__field--wide">
+                    <div className="label">Địa chỉ</div>
+                    <input className="input" value={newAddr.line1} onChange={(e) => setNewAddr({ ...newAddr, line1: e.target.value })} />
                   </div>
                   <div>
-                    <div className="label mb-1">Quận/Huyện</div>
-                    <input className="input" value={editing.form.district} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, district: e.target.value } })} />
+                    <div className="label">Thành phố</div>
+                    <input className="input" value={newAddr.city} onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })} />
                   </div>
                   <div>
-                    <div className="label mb-1">Phường/Xã</div>
-                    <input className="input" value={editing.form.ward} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, ward: e.target.value } })} />
+                    <div className="label">Quận/Huyện</div>
+                    <input className="input" value={newAddr.district} onChange={(e) => setNewAddr({ ...newAddr, district: e.target.value })} />
                   </div>
                   <div>
-                    <div className="label mb-1">Mã bưu điện</div>
-                    <input className="input" value={editing.form.postalCode || ""} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, postalCode: e.target.value } })} />
+                    <div className="label">Phường/Xã</div>
+                    <input className="input" value={newAddr.ward} onChange={(e) => setNewAddr({ ...newAddr, ward: e.target.value })} />
                   </div>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={!!editing.form.isDefault} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, isDefault: e.target.checked } })} />
+                  <div>
+                    <div className="label">Mã bưu điện</div>
+                    <input className="input" value={newAddr.postalCode} onChange={(e) => setNewAddr({ ...newAddr, postalCode: e.target.value })} />
+                  </div>
+                  <label className="profile-addressForm__check">
+                    <input type="checkbox" checked={newAddr.isDefault} onChange={(e) => setNewAddr({ ...newAddr, isDefault: e.target.checked })} />
                     Đặt làm mặc định
                   </label>
                 </div>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <button className="btn-primary" onClick={saveEdit}>Lưu</button>
-                  <button className="btn-secondary" onClick={() => setEditing(null)}>Hủy</button>
-                </div>
+                <button className="btn-primary profile-addressForm__submit" onClick={addAddress}>Thêm địa chỉ</button>
               </div>
-            ) : null}
+
+              {editing ? (
+                <div className="card profile-addressForm profile-addressForm--edit">
+                  <div className="profile-addressForm__title">Sửa địa chỉ</div>
+                  <div className="profile-addressForm__fields">
+                    <div>
+                      <div className="label">Họ và tên</div>
+                      <input className="input" value={editing.form.fullName} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, fullName: e.target.value } })} />
+                    </div>
+                    <div>
+                      <div className="label">SĐT</div>
+                      <input className="input" value={editing.form.phone} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, phone: e.target.value } })} />
+                    </div>
+                    <div className="profile-addressForm__field profile-addressForm__field--wide">
+                      <div className="label">Địa chỉ</div>
+                      <input className="input" value={editing.form.line1} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, line1: e.target.value } })} />
+                    </div>
+                    <div>
+                      <div className="label">Thành phố</div>
+                      <input className="input" value={editing.form.city} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, city: e.target.value } })} />
+                    </div>
+                    <div>
+                      <div className="label">Quận/Huyện</div>
+                      <input className="input" value={editing.form.district} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, district: e.target.value } })} />
+                    </div>
+                    <div>
+                      <div className="label">Phường/Xã</div>
+                      <input className="input" value={editing.form.ward} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, ward: e.target.value } })} />
+                    </div>
+                    <div>
+                      <div className="label">Mã bưu điện</div>
+                      <input className="input" value={editing.form.postalCode || ""} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, postalCode: e.target.value } })} />
+                    </div>
+                    <label className="profile-addressForm__check">
+                      <input type="checkbox" checked={!!editing.form.isDefault} onChange={(e) => setEditing({ ...editing, form: { ...editing.form, isDefault: e.target.checked } })} />
+                      Đặt làm mặc định
+                    </label>
+                  </div>
+
+                  <div className="profile-addressForm__actions">
+                    <button className="btn-primary" onClick={saveEdit}>Lưu</button>
+                    <button className="btn-secondary" onClick={() => setEditing(null)}>Hủy</button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
+
+        <ImageCropModal
+          open={cropOpen}
+          file={pendingFile}
+          title="Cắt ảnh đại diện"
+          aspect={1}
+          onClose={() => {
+            setCropOpen(false);
+            setPendingFile(null);
+          }}
+          onDone={uploadAvatarCropped}
+        />
       </div>
     </div>
   );

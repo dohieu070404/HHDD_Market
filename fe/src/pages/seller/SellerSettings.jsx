@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { sellerApi } from "../../api/seller";
+import ImageCropModal from "../../components/ImageCropModal";
+import { uploadWithProgress } from "../../utils/uploadWithProgress";
+import { useToast } from "../../contexts/ToastContext";
+
+import "./SellerSettings.css";
 
 export default function SellerSettings() {
   const [shop, setShop] = useState(null);
@@ -7,6 +12,13 @@ export default function SellerSettings() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
+  const fileRef = useRef(null);
+  const { push } = useToast();
+  const [pendingFile, setPendingFile] = useState(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPct, setLogoPct] = useState(0);
+  const [logoBuster, setLogoBuster] = useState(0);
 
   async function load() {
     setLoading(true);
@@ -48,78 +60,164 @@ export default function SellerSettings() {
     }
   }
 
+  function onLogoFileChange(e) {
+    const f = e.target.files?.[0] || null;
+    if (!f) return;
+    if (!/^image\//.test(f.type)) {
+      push({ type: "error", title: "Không hợp lệ", message: "Vui lòng chọn ảnh (jpg/png/webp)." });
+      return;
+    }
+    if (f.size > 4 * 1024 * 1024) {
+      push({ type: "error", title: "Ảnh quá lớn", message: "Tối đa 4MB." });
+      return;
+    }
+    setPendingFile(f);
+    setCropOpen(true);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  async function uploadLogoCropped(blob) {
+    if (!blob) return;
+    setLogoUploading(true);
+    setLogoPct(0);
+    try {
+      const fd = new FormData();
+      fd.append("shopLogo", blob, "logo.jpg");
+      const res = await uploadWithProgress({
+        path: "/seller/shop/logo",
+        formData: fd,
+        onProgress: setLogoPct,
+      });
+      if (res?.success) {
+        setForm((s) => ({ ...s, logoUrl: res.data?.logoUrl || s.logoUrl }));
+        setLogoBuster(Date.now());
+        push({ type: "success", title: "Thành công", message: "Đã cập nhật logo shop" });
+        await load();
+      } else {
+        push({ type: "error", title: "Thất bại", message: res?.message || "Upload logo thất bại" });
+      }
+    } catch (e) {
+      push({ type: "error", title: "Thất bại", message: e?.data?.message || "Upload logo thất bại" });
+    } finally {
+      setLogoUploading(false);
+      setLogoPct(0);
+      setPendingFile(null);
+      setCropOpen(false);
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <section className="seller-settings">
+      <header className="seller-settings__header">
         <div>
-          <h1 className="text-xl font-semibold">Thiết lập shop</h1>
-          <p className="text-sm text-slate-600">Cập nhật thông tin cửa hàng để hiển thị chuyên nghiệp hơn.</p>
+          <h1 className="seller-settings__title">Thiết lập shop</h1>
+          <p className="seller-settings__subtitle muted">Cập nhật thông tin cửa hàng để hiển thị chuyên nghiệp hơn.</p>
         </div>
-      </div>
+      </header>
 
-      {msg ? <div className="card border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">{msg}</div> : null}
-      {err ? <div className="card border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{err}</div> : null}
+      {msg ? <div className="alert alert--success seller-settings__alert">{msg}</div> : null}
+      {err ? <div className="alert alert--danger seller-settings__alert">{err}</div> : null}
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="card p-4 lg:col-span-2">
-          <form onSubmit={onSave} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Tên shop</label>
+      <div className="seller-settings__grid">
+        <div className="card seller-settings__formCard">
+          <form onSubmit={onSave} className="seller-settings__form">
+            <div className="seller-settings__field">
+              <label className="label">Tên shop</label>
               <input className="input" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} />
             </div>
-            <div>
-              <label className="text-sm font-medium">Logo URL</label>
-              <input className="input" value={form.logoUrl} onChange={(e) => setForm((s) => ({ ...s, logoUrl: e.target.value }))} />
-              <div className="mt-2 flex items-center gap-3">
-                <div className="h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                  {form.logoUrl ? <img src={form.logoUrl} alt="logo" className="h-full w-full object-cover" /> : null}
+
+            <div className="seller-settings__field">
+              <label className="label">Logo shop</label>
+              <div className="seller-settings__logoRow">
+                <div className="seller-settings__logo">
+                  {form.logoUrl ? (
+                    <img src={`${form.logoUrl}${form.logoUrl.includes("?") ? "&" : "?"}t=${logoBuster || 0}`} alt="logo" />
+                  ) : (
+                    <div className="seller-settings__logoPlaceholder">No logo</div>
+                  )}
                 </div>
-                <div className="text-xs text-slate-600">Bạn có thể dùng link ảnh công khai (https)</div>
+
+                <div className="seller-settings__logoActions">
+                  <button type="button" className="link-strong" onClick={() => fileRef.current?.click()}>
+                    Tải ảnh lên
+                  </button>
+                  <div className="hint">(JPG/PNG/WEBP, tối đa 4MB)</div>
+                  <input ref={fileRef} type="file" accept="image/*" hidden onChange={onLogoFileChange} />
+
+                  {logoUploading ? (
+                    <div className="seller-settings__uploading">
+                      <div className="progress">
+                        <div style={{ width: `${logoPct}%` }} />
+                      </div>
+                      <div className="muted seller-settings__uploadingText">Đang tải {logoPct}%</div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
+
+              <details className="seller-settings__details">
+                <summary className="seller-settings__summary">Hoặc dán logo URL</summary>
+                <div className="seller-settings__detailsBody">
+                  <input className="input" value={form.logoUrl} onChange={(e) => setForm((s) => ({ ...s, logoUrl: e.target.value }))} />
+                  <div className="muted seller-settings__detailsHint">Bạn có thể dùng link ảnh công khai (https)</div>
+                </div>
+              </details>
             </div>
-            <div>
-              <label className="text-sm font-medium">Mô tả</label>
-              <textarea
-                className="input min-h-[120px]"
-                value={form.description}
-                onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))}
-              />
+
+            <div className="seller-settings__field">
+              <label className="label">Mô tả</label>
+              <textarea className="textarea seller-settings__textarea" value={form.description} onChange={(e) => setForm((s) => ({ ...s, description: e.target.value }))} />
             </div>
-            <div className="flex gap-2">
-              <button className="btn btn-primary" type="submit" disabled={loading}>
+
+            <div className="seller-settings__actions">
+              <button className="btn-primary" type="submit" disabled={loading}>
                 Lưu thay đổi
               </button>
-              <button className="btn" type="button" onClick={load} disabled={loading}>
+              <button className="btn-secondary" type="button" onClick={load} disabled={loading}>
                 Tải lại
               </button>
             </div>
           </form>
         </div>
 
-        <div className="card p-4">
-          <div className="text-sm font-semibold">Thông tin hệ thống</div>
+        <div className="card seller-settings__sysCard">
+          <div className="seller-settings__sysTitle">Thông tin hệ thống</div>
           {loading ? (
-            <div className="mt-3 text-sm text-slate-600">Đang tải...</div>
+            <div className="seller-settings__sysLoading muted">Đang tải...</div>
           ) : shop ? (
-            <div className="mt-3 space-y-2 text-sm">
+            <div className="seller-settings__sysList">
               <div>
-                <div className="text-xs text-slate-500">Slug</div>
-                <div className="font-mono">{shop.slug}</div>
+                <div className="seller-settings__sysLabel">Slug</div>
+                <div className="seller-settings__sysValue seller-settings__mono">{shop.slug}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Trạng thái</div>
-                <div className="font-medium">{shop.status}</div>
+                <div className="seller-settings__sysLabel">Trạng thái</div>
+                <div className="seller-settings__sysValue">{shop.status}</div>
               </div>
               <div>
-                <div className="text-xs text-slate-500">Rating</div>
-                <div className="font-medium">{Number(shop.ratingAvg || 0).toFixed(1)} ({shop.ratingCount || 0})</div>
+                <div className="seller-settings__sysLabel">Rating</div>
+                <div className="seller-settings__sysValue">
+                  {Number(shop.ratingAvg || 0).toFixed(1)} ({shop.ratingCount || 0})
+                </div>
               </div>
             </div>
           ) : (
-            <div className="mt-3 text-sm text-rose-600">Không load được shop.</div>
+            <div className="seller-settings__sysError">Không load được shop.</div>
           )}
         </div>
       </div>
-    </div>
+
+      <ImageCropModal
+        open={cropOpen}
+        file={pendingFile}
+        title="Cắt logo"
+        aspect={1}
+        onClose={() => {
+          setCropOpen(false);
+          setPendingFile(null);
+        }}
+        onDone={uploadLogoCropped}
+      />
+    </section>
   );
 }

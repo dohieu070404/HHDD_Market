@@ -1,0 +1,28 @@
+.not-found__container{
+  padding-top: 64px;
+  padding-bottom: 64px;
+}
+
+.not-found__card{
+  padding: 32px;
+  text-align: center;
+}
+
+.not-found__code{
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.not-found__msg{
+  margin-top: 8px;
+}
+
+.not-found__cta{
+  margin-top: 24px;
+  display: inline-flex;
+}
+
+.not-found{
+  padding: 28px 0;
+}

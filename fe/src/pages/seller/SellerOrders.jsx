@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { sellerApi } from "../../api/seller";
 
+import "./SellerOrders.css";
+
 function formatVND(v) {
   const n = Number(v || 0);
   return n.toLocaleString("vi-VN") + "₫";
@@ -18,14 +20,17 @@ function StatusBadge({ status }) {
     COMPLETED: "Hoàn tất",
     CANCEL_REQUESTED: "Yêu cầu hủy",
     CANCELLED: "Đã hủy",
-    RETURN_REQUESTED: "Yêu cầu hoàn",
-    RETURNED: "Đã hoàn",
+    RETURN_REQUESTED: "Yêu cầu trả hàng",
+    RETURN_APPROVED: "Đã duyệt trả hàng",
+    RETURN_REJECTED: "Từ chối trả hàng",
+    RETURN_RECEIVED: "Đã nhận hàng hoàn",
+    REFUND_REQUESTED: "Yêu cầu hoàn tiền",
+    REFUNDED: "Đã hoàn tiền",
+    DISPUTED: "Đang khiếu nại",
   };
   const label = map[status] || status;
   return (
-    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold">
-      {label}
-    </span>
+    <span className="badge badge-muted seller-orders__status">{label}</span>
   );
 }
 
@@ -67,7 +72,8 @@ export default function SellerOrders() {
         a.push({ key: "in_transit", label: "Cập nhật: Đang giao", fn: () => sellerApi.updateShipment(order.code, { status: "IN_TRANSIT", message: "Đang giao hàng" }) });
         a.push({ key: "delivered", label: "Cập nhật: Đã giao", fn: () => sellerApi.updateShipment(order.code, { status: "DELIVERED", message: "Đã giao hàng" }) });
       }
-      if (!["SHIPPED", "DELIVERED", "COMPLETED", "CANCELLED", "RETURN_REQUESTED", "RETURNED"].includes(order.status)) {
+      // Seller can only directly cancel orders in early states.
+      if (["PENDING_PAYMENT", "PLACED", "CONFIRMED", "PACKING"].includes(order.status)) {
         a.push({ key: "cancel", label: "Hủy", fn: () => sellerApi.cancelOrder(order.code, { reason: "Người bán hủy" }) });
       }
       return a;
@@ -85,62 +91,60 @@ export default function SellerOrders() {
   }
 
   return (
-    <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="seller-orders">
+      <div className="seller-orders__header">
         <div>
-          <div className="text-xl font-bold">Đơn hàng</div>
-          <div className="mt-1 text-sm text-slate-600">Xử lý đơn hàng theo trạng thái (demo).</div>
+          <h1 className="seller-orders__title">Đơn hàng</h1>
+          <p className="seller-orders__subtitle muted">Xử lý đơn hàng theo trạng thái.</p>
         </div>
-        <button className="btn" onClick={load}>Tải lại</button>
+        <button className="btn btn-sm" onClick={load}>Tải lại</button>
       </div>
 
-      {err ? <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{err}</div> : null}
-      {loading ? <div className="mt-6 text-sm text-slate-600">Đang tải...</div> : null}
+      {err ? <div className="alert alert--danger seller-orders__alert">{err}</div> : null}
+      {loading ? <div className="seller-orders__loading muted">Đang tải...</div> : null}
 
       {!loading ? (
-        <div className="mt-6 card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+        <div className="card seller-orders__tableCard">
+          <div className="seller-orders__tableWrap">
+            <table className="table table--tiki table--fixed seller-orders__table">
+              <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left">Mã đơn</th>
-                  <th className="px-4 py-3 text-left">Người mua</th>
-                  <th className="px-4 py-3 text-left">Tổng</th>
-                  <th className="px-4 py-3 text-left">Trạng thái</th>
-                  <th className="px-4 py-3 text-right">Thao tác</th>
+                  <th scope="col">Mã đơn</th>
+                  <th scope="col">Người mua</th>
+                  <th scope="col">Tổng</th>
+                  <th scope="col">Trạng thái</th>
+                  <th scope="col" className="seller-orders__thRight">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((o) => (
-                  <tr key={o.id} className="border-t border-slate-200">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold">{o.code}</div>
-                      <div className="text-xs text-slate-600">{new Date(o.createdAt).toLocaleString("vi-VN")}</div>
+                  <tr key={o.id}>
+                    <td>
+                      <div className="seller-orders__code">{o.code}</div>
+                      <div className="seller-orders__meta muted">{new Date(o.createdAt).toLocaleString("vi-VN")}</div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold">{o.user?.username || "-"}</div>
-                      <div className="text-xs text-slate-600">{o.user?.email || ""}</div>
+                    <td>
+                      <div className="seller-orders__buyer">{o.user?.username || "-"}</div>
+                      <div className="seller-orders__meta muted">{o.user?.email || ""}</div>
                     </td>
-                    <td className="px-4 py-3 font-semibold">{formatVND(o.total)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex flex-wrap justify-end gap-2">
-                        <Link className="btn btn-ghost" to={`/seller/orders/${o.code}`}>Chi tiết</Link>
+                    <td className="seller-orders__total">{formatVND(o.total)}</td>
+                    <td><StatusBadge status={o.status} /></td>
+                    <td className="seller-orders__tdRight">
+                      <div className="seller-orders__actions">
+                        <Link className="btn btn-ghost btn-sm" to={`/seller/orders/${o.code}`}>Chi tiết</Link>
                         {actionsFor(o).slice(0, 3).map((a) => (
-                          <button key={a.key} className="btn" onClick={() => runAction(a.fn)}>
-                            {a.label}
-                          </button>
+                          <button key={a.key} className="btn btn-sm" onClick={() => runAction(a.fn)}>{a.label}</button>
                         ))}
                       </div>
                       {actionsFor(o).length > 3 ? (
-                        <div className="mt-2 text-xs text-slate-600">(Thêm thao tác ở chi tiết)</div>
+                        <div className="seller-orders__hint muted">(Thêm thao tác ở chi tiết)</div>
                       ) : null}
                     </td>
                   </tr>
                 ))}
                 {items.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-sm text-slate-600" colSpan={5}>Chưa có đơn hàng.</td>
+                    <td colSpan={5} className="seller-orders__empty muted">Chưa có đơn hàng.</td>
                   </tr>
                 ) : null}
               </tbody>
@@ -148,6 +152,6 @@ export default function SellerOrders() {
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

@@ -1,0 +1,97 @@
+.seller-inventory__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seller-inventory__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-inventory__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-inventory__controls{
+  margin-top: 14px;
+}
+
+.seller-inventory__controlsInner{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 768px){
+  .seller-inventory__controlsInner{
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.seller-inventory__search{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seller-inventory__alert{ margin-top: 14px; }
+
+.seller-inventory__tableCard{
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.seller-inventory__tableWrap{
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.seller-inventory__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .seller-inventory__table{ min-width: 900px; }
+}
+
+.seller-inventory__thRight,
+.seller-inventory__tdRight{ text-align: right; }
+
+.seller-inventory__skuCode{ font-weight: 700; color: #0f172a; }
+.seller-inventory__skuName{ margin-top: 2px; font-size: 12px; }
+
+.seller-inventory__tdMuted{ padding: 16px; font-size: 14px; }
+
+.seller-inventory__rowWarn{ background: rgba(245, 158, 11, 0.08); }
+
+.seller-inventory__lowStock{ margin-top: 6px; }
+
+.seller-inventory__stockCell{ min-width: 190px; }
+
+.seller-inventory__stockEdit{
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seller-inventory__stockInput{ width: 110px; }
+
+.seller-inventory__updated{ font-size: 12px; }
+
+.seller-inventory__pager{
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seller-inventory__pageInfo{ font-size: 14px; }
+
+.seller-inventory{ padding: 24px 0; }

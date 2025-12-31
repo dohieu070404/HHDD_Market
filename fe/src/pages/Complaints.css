@@ -1,0 +1,280 @@
+/* Complaints page (Tiki-like) */
+
+.complaints-page{ padding: 24px 0; }
+
+.complaints-page__container{ }
+
+.complaints-page__header{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.complaints-page__headText{ min-width: 0; }
+
+.complaints-page__title{
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.complaints-page__subtitle{
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.complaints-page__tabs{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.complaints-page__alert{ margin-top: 16px; }
+
+.complaints-page__content{ margin-top: 20px; }
+
+/* NEW tab layout */
+.complaints-new{
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 768px){
+  .complaints-new{ grid-template-columns: 2fr 1fr; align-items: start; }
+}
+
+.complaints-new__main,
+.complaints-new__aside{ padding: 20px; }
+
+.complaints-new__grid{ margin-top: 16px; display: grid; gap: 16px; }
+
+.complaints-new__field{ display: grid; gap: 6px; }
+
+.complaints-new__label{ font-size: 14px; font-weight: 800; color: #0f172a; }
+
+.complaints-new__hint{ font-size: 12px; margin-top: 2px; }
+
+.complaints-new__actions{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.complaints-new__asideBody{ margin-top: 10px; font-size: 14px; line-height: 1.55; }
+
+.complaints-new__asideList{ margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+
+/* LIST tab */
+.complaints-list{ display: grid; gap: 12px; }
+
+/* Skeleton card */
+.complaints-skeletonCard{ padding: 16px; }
+
+.complaints-skeletonCard__head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.complaints-skeletonCard__title{ height: 14px; width: 176px; border-radius: 999px; }
+.complaints-skeletonCard__pill{ height: 24px; width: 96px; border-radius: 999px; }
+
+.complaints-skeletonCard__lines{ margin-top: 12px; display: grid; gap: 8px; }
+.complaints-skeletonCard__line{ height: 10px; border-radius: 999px; }
+.complaints-skeletonCard__line--lg{ width: 75%; }
+.complaints-skeletonCard__line--md{ width: 66%; }
+
+/* Dispute card */
+.complaint-card{ padding: 20px; }
+
+.complaint-card__head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.complaint-card__left{ min-width: 0; }
+
+.complaint-card__titleRow{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.complaint-card__meta{ margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.complaint-card__order{ font-size: 14px; font-weight: 800; }
+
+.complaint-card__shopLink{
+  font-size: 12px;
+  color: #475569;
+  text-decoration: none;
+}
+
+.complaint-card__shopLink:hover{ color: #0f172a; text-decoration: underline; }
+
+.complaint-card__time{ font-size: 12px; }
+
+.complaint-card__body{ margin-top: 12px; font-size: 14px; }
+
+.complaint-card__type{ margin-top: 6px; }
+
+.complaint-card__message{ margin-top: 10px; line-height: 1.55; white-space: pre-wrap; }
+
+.complaint-card__boxes{ margin-top: 14px; display: grid; gap: 12px; }
+
+.complaint-card__footer{
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.complaint-card__badges{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.complaint-card__footerActions{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.complaint-card__orderStatus{ font-size: 12px; }
+
+/* Box styles */
+.complaint-reply,
+.complaint-resolution{
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.complaint-reply{ border-color: rgba(13, 92, 182, 0.25); background: rgba(13, 92, 182, 0.06); }
+
+.complaint-resolution{ border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); }
+
+.complaint-revision{ border-color: rgba(234, 179, 8, 0.35); background: rgba(254, 249, 195, 0.6); border-radius: 12px; padding: 12px; margin-top: 12px; }
+
+.complaint-revisionForm{ border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 12px; margin-top: 12px; }
+.complaint-revisionForm__actions{ margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* Evidence preview in NEW tab */
+.complaints-evidence__grid{ margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.complaints-evidence__item{ position: relative; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+.complaints-evidence__img{ width: 100%; height: 84px; object-fit: cover; display: block; }
+.complaints-evidence__remove{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: rgba(255,255,255,0.92);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+/* Evidence gallery in LIST tab */
+.complaint-card__gallery{ margin-top: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 10px; }
+.complaint-card__galleryItem{ display: block; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; background: #fff; }
+.complaint-card__galleryImg{ width: 100%; height: 84px; object-fit: cover; display: block; }
+
+.complaint-box__title{ font-size: 13px; font-weight: 800; }
+.complaint-box__time{ margin-top: 4px; font-size: 12px; }
+.complaint-box__content{ margin-top: 8px; font-size: 13px; line-height: 1.55; }
+
+/* Empty */
+.complaints-empty{ padding: 22px; }
+.complaints-empty__title{ font-size: 14px; font-weight: 700; }
+.complaints-empty__btn{ margin-top: 12px; }
+
+.complaint-card__title{ font-weight: 900; color: #0f172a; }
+
+/* Evidence picker (NEW tab) */
+.complaints-evidence__grid{
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 640px){
+  .complaints-evidence__grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.complaints-evidence__item{
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.complaints-evidence__img{
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+}
+
+.complaints-evidence__remove{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.7);
+  color: #fff;
+  cursor: pointer;
+  line-height: 24px;
+  font-size: 16px;
+}
+.complaints-evidence__remove:hover{ background: rgba(15, 23, 42, 0.88); }
+
+/* Dispute gallery (LIST tab) */
+.complaint-card__gallery{
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 640px){
+  .complaint-card__gallery{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+.complaint-card__galleryItem{
+  display: block;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.complaint-card__galleryImg{
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Revision request boxes */
+.complaint-revision,
+.complaint-revisionForm{
+  margin-top: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.complaint-revisionForm__actions{
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

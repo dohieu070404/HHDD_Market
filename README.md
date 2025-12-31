@@ -1,25 +1,27 @@
 # Marketplace Demo (Customer / Seller / Admin)
 
+Project này được hoàn thiện từ skeleton ban đầu, bám theo các Use Case mà bạn đưa ra:
+
 - **Customer-facing**: browse sản phẩm, giỏ hàng, checkout, đơn hàng, tracking, đánh giá...
 - **Seller Center**: quản lý shop, sản phẩm, tồn kho, xử lý đơn hàng...
 - **Admin Console**: quản trị user, duyệt seller, kiểm duyệt sản phẩm, giám sát đơn...
 
+> Đây là **project demo/learning** (mock Payment/Shipping), tập trung vào luồng nghiệp vụ + cấu trúc code.
+
 ## 1) Chạy Backend (Express + Prisma + MySQL)
 
 ### Yêu cầu
-
 - Docker + Docker Compose
 
 ### Chạy
-
 ```bash
 cd be
 docker compose up -d --build
 ```
 
 Backend mặc định chạy: `http://localhost:8080`
-Trong `docker-compose.yml` đã bật:
 
+Trong `docker-compose.yml` đã bật:
 - `AUTO_DB_PUSH=true` → tự chạy `prisma db push` và `prisma/seed.js` khi container khởi động.
 
 ## 2) Chạy Frontend (Vite + React)
@@ -40,15 +42,14 @@ Vite đã proxy `/api` sang backend `http://localhost:8080`.
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | <admin@shop.local> | Admin@123 |
-| CS | <cs@shop.local> | Cs@12345 |
-| Seller | <seller@shop.local> | Seller@123 |
-| Customer | <customer@shop.local> | Customer@123 |
+| Admin | admin@shop.local | Admin@123 |
+| CS | cs@shop.local | Cs@12345 |
+| Seller | seller@shop.local | Seller@123 |
+| Customer | customer@shop.local | Customer@123 |
 
 > Lưu ý: **Login API dùng key `username`** (có thể nhập *email hoặc username*).
 
 Ví dụ Register:
-
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
@@ -56,7 +57,6 @@ curl -X POST http://localhost:8080/api/auth/register \
 ```
 
 Ví dụ Login:
-
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
@@ -74,7 +74,6 @@ curl -X POST http://localhost:8080/api/auth/login \
 ## 5) API chính (tóm tắt)
 
 ### Auth
-
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
@@ -84,7 +83,6 @@ curl -X POST http://localhost:8080/api/auth/login \
 - `POST /api/auth/seller/apply`
 
 ### Public
-
 - `GET /api/public/home`
 - `GET /api/public/categories`
 - `GET /api/public/products?q=&category=&sort=&minPrice=&maxPrice=&minRating=`
@@ -93,7 +91,6 @@ curl -X POST http://localhost:8080/api/auth/login \
 - `GET /api/public/shops/:slug`
 
 ### Customer
-
 - `GET/POST/PUT/DELETE /api/customer/addresses`
 - `GET/POST/PATCH/DELETE /api/customer/cart/...`
 - `POST /api/customer/checkout`
@@ -108,7 +105,6 @@ curl -X POST http://localhost:8080/api/auth/login \
 - Reviews: `POST /api/customer/reviews/product/:productId`, `PUT/DELETE /api/customer/reviews/:id`, `POST /api/customer/reviews/:id/report`
 
 ### Seller
-
 - Shop: `GET/PUT /api/seller/shop`
 - Products: `GET/POST/PUT /api/seller/products`, `POST /api/seller/products/:id/visibility` (ACTIVE/HIDDEN/OOS)
 - Orders: `GET /api/seller/orders`, `POST /api/seller/orders/:code/confirm`, `.../pack`, `.../create-shipment`
@@ -116,7 +112,6 @@ curl -X POST http://localhost:8080/api/auth/login \
 - Analytics: `GET /api/seller/analytics/summary`
 
 ### Admin
-
 - Users: `GET /api/admin/users`, `PUT /api/admin/users/:id/role`, `PUT /api/admin/users/:id/block`
 - Sellers: `GET /api/admin/sellers`, `POST /api/admin/sellers/:userId/approve|reject`
 - Categories: CRUD `/api/admin/categories`
@@ -125,3 +120,5 @@ curl -X POST http://localhost:8080/api/auth/login \
 - Audit logs: `GET /api/admin/audit`
 
 ---
+
+Nếu bạn muốn mình **map 1-1** từng Use Case trong UML sang API endpoint/flow cụ thể (sequence + state machine), nói mình biết: mình sẽ bổ sung file tài liệu `/docs` (markdown) và/hoặc Swagger.

@@ -1,5 +1,6 @@
 import RequireAuth from "./RequireAuth";
 import { useAuth } from "../../contexts/AuthContext";
+import "./authGuard.css";
 
 export default function RequireRole({ roles, children }) {
   const { user, booting } = useAuth();
@@ -8,8 +9,10 @@ export default function RequireRole({ roles, children }) {
   if (booting) {
     return (
       <RequireAuth>
-        <div className="container-page py-10">
-          <div className="card p-6">Đang tải...</div>
+        <div className="auth-guard">
+          <div className="container-page auth-guard__container">
+            <div className="card auth-guard__card">Đang tải...</div>
+          </div>
         </div>
       </RequireAuth>
     );
@@ -20,10 +23,12 @@ export default function RequireRole({ roles, children }) {
       {ok ? (
         children
       ) : (
-        <div className="container-page py-10">
-          <div className="card p-6">
-            <h1 className="text-lg font-semibold">Không có quyền truy cập</h1>
-            <p className="muted mt-2">Tài khoản của bạn không có quyền vào khu vực này.</p>
+        <div className="auth-guard">
+          <div className="container-page auth-guard__container">
+            <div className="card auth-guard__card">
+              <h1 className="auth-guard__title">Không có quyền truy cập</h1>
+              <p className="auth-guard__desc muted">Tài khoản của bạn không có quyền vào khu vực này.</p>
+            </div>
           </div>
         </div>
       )}

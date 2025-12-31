@@ -194,7 +194,7 @@ exports.me = async (req, res, next) => {
             }),
             prisma.sellerProfile.findUnique({
                 where: { userId },
-                select: { userId: true, status: true, shopName: true, createdAt: true },
+                select: { userId: true, status: true, shopName: true, rejectedReason: true, createdAt: true },
             }),
         ]);
 
@@ -302,20 +302,62 @@ exports.applySeller = async (req, res, next) => {
         const userId = req.user.sub;
         const body = applySellerSchema.parse(req.body);
 
+        // Generate shop slug (unique)
+        const baseSlug = slugify(body.shopName);
+        let slug = baseSlug;
+        const slugExists = await prisma.shop.findFirst({
+            where: { slug, NOT: { ownerId: userId } },
+        });
+        if (slugExists) slug = `${baseSlug}-${Math.random().toString(16).slice(2, 6)}`;
+
         const existing = await prisma.sellerProfile.findUnique({ where: { userId } });
+
+        // Re-apply when previously rejected
+        if (existing && existing.status === "REJECTED") {
+            const shop = await prisma.shop.findUnique({ where: { ownerId: userId } });
+
+            const [sellerProfile, upsertedShop] = await prisma.$transaction([
+                prisma.sellerProfile.update({
+                    where: { userId },
+                    data: {
+                        status: "PENDING",
+                        shopName: body.shopName,
+                        phone: body.phone,
+                        taxId: body.taxId,
+                        kycDocumentUrl: body.kycDocumentUrl,
+                        rejectedReason: null,
+                    },
+                }),
+                shop
+                    ? prisma.shop.update({
+                          where: { id: shop.id },
+                          data: { name: body.shopName, slug, status: "PENDING" },
+                      })
+                    : prisma.shop.create({
+                          data: { ownerId: userId, name: body.shopName, slug, status: "PENDING" },
+                      }),
+            ]);
+
+            return res.status(201).json({
+                success: true,
+                message: "Đã gửi lại yêu cầu mở shop. Vui lòng chờ duyệt.",
+                data: { sellerProfile, shop: upsertedShop },
+            });
+        }
+
+        // Already applied / approved
         if (existing) {
             return res.status(409).json({
                 success: false,
-                message: "Bạn đã có hồ sơ Seller. Vui lòng chờ duyệt.",
+                message:
+                    existing.status === "APPROVED"
+                        ? "Bạn đã là người bán (Seller)."
+                        : "Bạn đã có hồ sơ Seller. Vui lòng chờ duyệt.",
                 data: existing,
             });
         }
 
-        const baseSlug = slugify(body.shopName);
-        let slug = baseSlug;
-        const slugExists = await prisma.shop.findUnique({ where: { slug } });
-        if (slugExists) slug = `${baseSlug}-${Math.random().toString(16).slice(2, 6)}`;
-
+        // Create new profile + shop
         const [sellerProfile, shop] = await prisma.$transaction([
             prisma.sellerProfile.create({
                 data: {
@@ -349,3 +391,4 @@ exports.applySeller = async (req, res, next) => {
         next(err);
     }
 };
+

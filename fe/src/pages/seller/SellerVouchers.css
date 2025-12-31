@@ -1,0 +1,166 @@
+.seller-vouchers__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.seller-vouchers__headerActions{
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seller-vouchers__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-vouchers__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-vouchers__alert{ margin-top: 16px; }
+
+.seller-vouchers__listCard{
+  margin-top: 20px;
+  padding: 18px;
+}
+
+.seller-vouchers__cardTitle{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-vouchers__form{
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.seller-vouchers__field{
+  display: grid;
+  gap: 6px;
+}
+
+.seller-vouchers__grid2{
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 768px){
+  .seller-vouchers__grid2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.seller-vouchers__checkbox{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #dbe0e6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.seller-vouchers__checkbox input{ width: 16px; height: 16px; }
+
+.seller-vouchers__actions{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.seller-vouchers__listHead{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.seller-vouchers__listActions{ display: flex; gap: 8px; }
+
+.seller-vouchers__skeletons{
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.seller-vouchers__tableWrap{
+  margin-top: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.seller-vouchers__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .seller-vouchers__table{ min-width: 760px; }
+}
+
+/* Column sizing (desktop). Keeps the table readable without forcing horizontal scroll. */
+.seller-vouchers__table thead th:nth-child(1){ width: 16%; }
+.seller-vouchers__table thead th:nth-child(2){ width: 10%; }
+.seller-vouchers__table thead th:nth-child(3){ width: 26%; }
+.seller-vouchers__table thead th:nth-child(4){ width: 18%; }
+.seller-vouchers__table thead th:nth-child(5){ width: 12%; }
+.seller-vouchers__table thead th:nth-child(6){ width: 18%; }
+
+.seller-vouchers__thRight,
+.seller-vouchers__tdRight{
+  text-align: right;
+}
+
+.seller-vouchers__code{
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seller-vouchers__condition{
+  font-size: 14px;
+}
+
+.seller-vouchers__usage{
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.seller-vouchers__rowActions{
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.seller-vouchers__modalActions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.seller-vouchers__empty{
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+.seller-vouchers{ padding: 24px 0; }
+
+/* Allow action buttons to wrap gracefully inside fixed columns */
+.seller-vouchers__rowActions .btn,
+.seller-vouchers__rowActions .btn-ghost,
+.seller-vouchers__rowActions .btn-secondary,
+.seller-vouchers__rowActions .btn-primary{
+  white-space: normal;
+}

@@ -1,0 +1,135 @@
+.seller-overview__header{
+  margin-bottom: 16px;
+}
+
+.seller-overview__title{
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-overview__subtitle{
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.seller-overview__alert{
+  margin-top: 16px;
+}
+
+.seller-overview__loading,
+.seller-overview__empty{
+  margin-top: 20px;
+}
+
+.seller-overview__stats{
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 640px){
+  .seller-overview__stats{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px){
+  .seller-overview__stats{ grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.seller-overview__stat{
+  padding: 18px;
+}
+
+.seller-overview__statLabel{
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.seller-overview__statValue{
+  margin-top: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-overview__finance{
+  margin-top: 16px;
+  padding: 20px;
+}
+
+.seller-overview__financeTitle{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-overview__financeGrid{
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  font-size: 14px;
+}
+
+@media (min-width: 640px){
+  .seller-overview__financeGrid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px){
+  .seller-overview__financeGrid{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.seller-overview__financeLabel{
+  color: #64748b;
+}
+
+.seller-overview__financeValue{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-overview__financeTotal{
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.seller-overview__financeTotalLabel{
+  font-size: 14px;
+  color: #64748b;
+}
+
+.seller-overview__financeTotalValue{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-overview__tips{
+  margin-top: 20px;
+  padding: 20px;
+}
+
+.seller-overview__tipsTitle{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.seller-overview__tipsList{
+  margin-top: 8px;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: #334155;
+  list-style: disc;
+}
+
+.seller-overview{ padding: 24px 0; }

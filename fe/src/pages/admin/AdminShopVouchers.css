@@ -1,0 +1,170 @@
+.admin-shop-vouchers__header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-shop-vouchers__title{
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-shop-vouchers__subtitle{ margin-top: 6px; font-size: 14px; }
+
+.admin-shop-vouchers__alert{ margin-top: 14px; }
+
+.admin-shop-vouchers__shopCard{ margin-top: 16px; padding: 16px; }
+
+.admin-shop-vouchers__shopHead{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-shop-vouchers__shopSelect{
+  width: min(360px, 100%);
+}
+
+.admin-shop-vouchers__listCard{ margin-top: 18px; padding: 18px; }
+
+.admin-shop-vouchers__cardTitle{
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-shop-vouchers__shopName{ font-size: 13px; }
+
+.admin-shop-vouchers__form{
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.admin-shop-vouchers__grid2{
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 768px){
+  .admin-shop-vouchers__grid2{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.admin-shop-vouchers__checkRow{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #dbe0e6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.admin-shop-vouchers__checkRow input{ width: 16px; height: 16px; }
+
+.admin-shop-vouchers__checkLabel{ font-size: 14px; }
+
+.admin-shop-vouchers__formActions{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.admin-shop-vouchers__listHead{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-shop-vouchers__skeleton{ margin-top: 14px; display: grid; gap: 10px; }
+
+.admin-shop-vouchers__tableWrap{
+  margin-top: 14px;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-shop-vouchers__table{ width: 100%; }
+
+@media (max-width: 1024px){
+  .admin-shop-vouchers__table{ min-width: 760px; }
+}
+
+/* Column sizing (desktop). Keeps the table readable without forcing horizontal scroll. */
+.admin-shop-vouchers__table thead th:nth-child(1){ width: 16%; }
+.admin-shop-vouchers__table thead th:nth-child(2){ width: 10%; }
+.admin-shop-vouchers__table thead th:nth-child(3){ width: 26%; }
+.admin-shop-vouchers__table thead th:nth-child(4){ width: 18%; }
+.admin-shop-vouchers__table thead th:nth-child(5){ width: 12%; }
+.admin-shop-vouchers__table thead th:nth-child(6){ width: 18%; }
+
+.admin-shop-vouchers__code{
+  font-weight: 600;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shop-vouchers__conditions{ font-size: 14px; }
+
+.admin-shop-vouchers__validity{ font-size: 14px; }
+
+.admin-shop-vouchers__used{ margin-top: 6px; font-size: 12px; color: #64748b; }
+
+.admin-shop-vouchers__thRight,
+.admin-shop-vouchers__tdRight{ text-align: right; }
+
+.admin-shop-vouchers__rowActions{
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-shop-vouchers__modalActions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-shop-vouchers__modalNote{ margin-bottom: 10px; font-size: 13px; }
+
+.admin-shop-vouchers__footNote{
+  margin-top: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.admin-shop-vouchers__empty{ margin-top: 14px; font-size: 14px; color: #64748b; }
+
+.admin-shop-vouchers{ padding: 24px 0; }
+
+.admin-shop-vouchers__label{
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.admin-shop-vouchers__shopHint{
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Allow action buttons to wrap gracefully inside fixed columns */
+.admin-shop-vouchers__rowActions .btn,
+.admin-shop-vouchers__rowActions .btn-ghost,
+.admin-shop-vouchers__rowActions .btn-secondary,
+.admin-shop-vouchers__rowActions .btn-primary{
+  white-space: normal;
+}
