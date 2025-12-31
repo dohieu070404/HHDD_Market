@@ -24,47 +24,7 @@ enum ShopStatus {
   PENDING
   ACTIVE
   SUSPENDED
-<<<<<<< HEAD
   REJECTED
-=======
-  HIDDEN
-  BANNED
-  REJECTED
-}
-
-enum ShopReportResolution {
-  PENDING
-  VALID
-  INVALID
-  ABUSIVE
-  DUPLICATE
-}
-
-enum ShopReportSeverity {
-  LOW
-  MEDIUM
-  HIGH
-  CRITICAL
-}
-
-enum ShopModerationActionType {
-  WARN_1
-  WARN_2
-  WARN_3
-  SUSPEND_7D
-  SUSPEND_30D
-  HIDE
-  UNHIDE
-  BAN
-  UNBAN
-  ADJUST_POINTS
-}
-
-enum ShopReportStatus {
-  OPEN
-  RESOLVED
-  DISMISSED
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
 }
 
 enum ProductStatus {
@@ -171,38 +131,6 @@ enum ShopAddressType {
   RETURN
 }
 
-enum CheckoutDraftStatus {
-  DRAFT
-  COMMITTED
-  EXPIRED
-  CANCELLED
-}
-
-enum IdempotencyStatus {
-  IN_PROGRESS
-  SUCCESS
-  FAILED
-}
-
-enum ShopMemberRole {
-  OWNER
-  MANAGER
-  STAFF
-}
-
-enum ShopMemberStatus {
-  ACTIVE
-  INVITED
-  DISABLED
-}
-
-enum PayoutStatus {
-  REQUESTED
-  APPROVED
-  REJECTED
-  PAID
-}
-
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -229,29 +157,13 @@ model User {
   disputes     Dispute[]
   reviewReports ReviewReport[] @relation("ReviewReportsByUser")
 
-  // Review follow-up thread (Shopee-like)
-  reviewBuyerFollowUps ReviewBuyerFollowUp[]
-
-  // Shop reports
-  reportedShopReports ShopReport[] @relation("ShopReportReporter")
-  resolvedShopReports ShopReport[] @relation("ShopReportResolvedBy")
-
-  shopModerationEvents ShopModerationEvent[] @relation("ShopModerationActor")
-
   cancelRequests CancelRequest[] @relation("CancelRequestedBy")
   returnRequests ReturnRequest[] @relation("ReturnRequestedBy")
 
   cancelResolved CancelRequest[] @relation("CancelResolvedBy")
   returnResolved ReturnRequest[] @relation("ReturnResolvedBy")
   disputeResolved Dispute[] @relation("DisputeResolvedBy")
-  disputeRevisionRequested Dispute[] @relation("DisputeRevisionRequestedBy")
   refundProcessed Refund[] @relation("RefundProcessedBy")
-
-  checkoutDrafts CheckoutDraft[]
-  idempotencyKeys IdempotencyKey[]
-  shopMemberships ShopMember[]
-  payoutRequests Payout[] @relation("PayoutRequestedBy")
-  payoutProcessed Payout[] @relation("PayoutProcessedBy")
 
   passwordResets PasswordResetToken[]
 }
@@ -312,16 +224,6 @@ model Shop {
   description String?
   logoUrl     String?
   status      ShopStatus @default(PENDING)
-  moderationNote String?
-  suspendedAt DateTime?
-  suspensionUntil DateTime?
-  bannedAt    DateTime?
-
-  // Moderation & policy
-  violationPoints Int @default(0)
-  warningLevel    Int @default(0) // 0..3
-  strikes         Int @default(0) // 0..3 (>=3 => BAN)
-  lastModeratedAt DateTime?
   ratingAvg   Float      @default(0)
   ratingCount Int        @default(0)
   createdAt   DateTime   @default(now())
@@ -334,35 +236,6 @@ model Shop {
   shippingConfigs ShippingConfig[]
   payoutAccount   PayoutAccount?
   reviewReplies   ReviewReply[]
-  // Review follow-up thread (Shopee-like)
-  reviewSellerFollowUps ReviewSellerFollowUp[]
-  members         ShopMember[]
-  shopVouchers    ShopVoucher[]
-  payouts         Payout[]
-  draftGroups     CheckoutDraftGroup[]
-  draftItems      CheckoutDraftItem[]
-
-  reports         ShopReport[]
-  moderationEvents ShopModerationEvent[]
-}
-
-model ShopModerationEvent {
-  id        Int  @id @default(autoincrement())
-  shopId    Int
-  shop      Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  actorId   Int?
-  actor     User? @relation("ShopModerationActor", fields: [actorId], references: [id], onDelete: SetNull)
-
-  action    ShopModerationActionType
-  pointsDelta Int @default(0)
-  note      String? @db.Text
-  meta      Json?
-  createdAt DateTime @default(now())
-
-  @@index([shopId])
-  @@index([action])
-  @@index([createdAt])
 }
 
 model ShopAddress {
@@ -390,235 +263,12 @@ model ShippingConfig {
   id        Int      @id @default(autoincrement())
   shopId    Int
   shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  // Carrier / method
-  carrier     String
-  code        String
-  serviceName String
-  description String?
-  isActive    Boolean  @default(true)
-
-  // Pricing (VND)
-  baseFee          Int @default(0)
-  feePerItem       Int @default(0)
-  feePerKg         Int @default(0)
-  freeShippingOver Int?
-
-  // ETA & constraints
-  minDays       Int @default(2)
-  maxDays       Int @default(4)
-  maxWeightGram Int?
-  codSupported  Boolean @default(true)
-
-  // Zone constraints: JSON array of { province?, city?, district? }
-  zonesJson String?
-
+  carrier   String
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  draftGroups CheckoutDraftGroup[]
-
-  @@unique([shopId, code])
   @@index([shopId])
-  @@index([isActive])
-  @@index([carrier])
-}
-
-
-model IdempotencyKey {
-  id          Int               @id @default(autoincrement())
-  userId      Int
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scope       String
-  key         String
-  requestHash String
-  status      IdempotencyStatus @default(IN_PROGRESS)
-  httpStatus  Int?
-  responseJson String?
-  errorJson   String?
-  expiresAt   DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @default(now()) @updatedAt
-
-  @@unique([userId, scope, key])
-  @@index([userId])
-  @@index([scope])
-  @@index([expiresAt])
-}
-
-model CheckoutDraft {
-  id            Int               @id @default(autoincrement())
-  code          String            @unique
-  userId        Int
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status        CheckoutDraftStatus @default(DRAFT)
-  currency      String            @default("VND")
-  subtotal      Int               @default(0)
-  shippingTotal Int               @default(0)
-  discountTotal Int               @default(0)
-  total         Int               @default(0)
-  note          String?
-  voucherId     Int?
-  voucher       Voucher?          @relation(fields: [voucherId], references: [id], onDelete: SetNull)
-  voucherCode   String?
-
-  shipFullName   String
-  shipPhone      String
-  shipLine1      String
-  shipLine2      String?
-  shipWard       String?
-  shipDistrict   String?
-  shipCity       String?
-  shipProvince   String?
-  shipCountry    String           @default("VN")
-  shipPostalCode String?
-
-  expiresAt   DateTime?
-  committedAt DateTime?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @default(now()) @updatedAt
-
-  groups CheckoutDraftGroup[]
-  items  CheckoutDraftItem[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([expiresAt])
-}
-
-model CheckoutDraftGroup {
-  id        Int          @id @default(autoincrement())
-  draftId   Int
-  draft     CheckoutDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
-  shopId    Int
-  shop      Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  subtotal     Int @default(0)
-  shippingFee  Int @default(0)
-  // Platform voucher share for this shop-group (computed from CheckoutDraft.voucherCode/voucherId).
-  discount     Int @default(0)
-  // Shop voucher discount for this shop-group.
-  shopDiscount Int @default(0)
-  total        Int @default(0)
-
-  shopVoucherId Int?
-  shopVoucher   ShopVoucher? @relation(fields: [shopVoucherId], references: [id], onDelete: SetNull)
-
-  shippingConfigId Int?
-  shippingConfig   ShippingConfig? @relation(fields: [shippingConfigId], references: [id], onDelete: SetNull)
-  shippingCarrier  String?
-  shippingServiceName String?
-  shippingOptionCode String?
-  etaMinDays Int?
-  etaMaxDays Int?
-
-  errorCode    String?
-  errorMessage String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  items CheckoutDraftItem[]
-
-  @@unique([draftId, shopId])
-  @@index([draftId])
-  @@index([shopId])
-}
-
-model CheckoutDraftItem {
-  id        Int      @id @default(autoincrement())
-  draftId   Int
-  draft     CheckoutDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
-  groupId   Int
-  group     CheckoutDraftGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  shopId    Int
-  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  skuId     Int
-  sku       SKU      @relation(fields: [skuId], references: [id])
-  productId Int
-  product   Product  @relation(fields: [productId], references: [id])
-
-  name      String
-  unitPrice Int
-  // Snapshot SKU cost price at draft time for profit calculation.
-  costPrice Int?
-  qty       Int
-  weightGram Int?
-  lineTotal Int
-
-  createdAt DateTime @default(now())
-
-  @@index([draftId])
-  @@index([groupId])
-  @@index([shopId])
-  @@index([skuId])
-}
-
-model ShopMember {
-  id        Int            @id @default(autoincrement())
-  shopId    Int
-  shop      Shop           @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      ShopMemberRole @default(STAFF)
-  status    ShopMemberStatus @default(ACTIVE)
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @default(now()) @updatedAt
-
-  @@unique([shopId, userId])
-  @@index([shopId])
-  @@index([userId])
-  @@index([role])
-}
-
-model ShopVoucher {
-  id          Int         @id @default(autoincrement())
-  shopId      Int
-  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  code        String      @unique
-  type        VoucherType
-  value       Int
-  minSubtotal Int         @default(0)
-  maxDiscount Int?
-  // Loyalty conditions (optional): require buyer spend with this shop in current month/year.
-  // 0 means no restriction.
-  minBuyerSpendMonth Int  @default(0)
-  minBuyerSpendYear  Int  @default(0)
-  startAt     DateTime?
-  endAt       DateTime?
-  usageLimit  Int?
-  usedCount   Int         @default(0)
-  isActive    Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
-  draftGroups CheckoutDraftGroup[]
-
-  orders Order[]
-
-  @@index([shopId])
-  @@index([isActive])
-}
-
-model Payout {
-  id             Int         @id @default(autoincrement())
-  shopId         Int
-  shop           Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  amount         Int
-  currency       String      @default("VND")
-  status         PayoutStatus @default(REQUESTED)
-  note           String?
-  requestedById  Int
-  requestedBy    User        @relation("PayoutRequestedBy", fields: [requestedById], references: [id])
-  processedById  Int?
-  processedBy    User?       @relation("PayoutProcessedBy", fields: [processedById], references: [id])
-  processedAt    DateTime?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @default(now()) @updatedAt
-
-  @@index([shopId])
-  @@index([status])
-  @@index([requestedById])
 }
 
 model PayoutAccount {
@@ -670,7 +320,6 @@ model Product {
   wishlist   WishlistItem[]
   orderItems OrderItem[]
   reviews    Review[]
-  draftItems CheckoutDraftItem[]
 
   @@index([shopId])
   @@index([categoryId])
@@ -695,8 +344,6 @@ model SKU {
   name            String
   attributesJson  String?
   price           Int?
-  // Cost price (COGS) for profit calculation. Snapshot into OrderItem on checkout.
-  costPrice       Int?
   compareAtPrice  Int?
   stock           Int      @default(0)
   weightGram      Int?
@@ -706,7 +353,6 @@ model SKU {
 
   cartItems  CartItem[]
   orderItems OrderItem[]
-  draftItems CheckoutDraftItem[]
 
   @@index([productId])
 }
@@ -755,10 +401,6 @@ model Voucher {
   value       Int
   minSubtotal Int         @default(0)
   maxDiscount Int?
-  // Loyalty conditions (optional): require buyer spend (gross) in current month/year.
-  // 0 means no restriction.
-  minBuyerSpendMonth Int  @default(0)
-  minBuyerSpendYear  Int  @default(0)
   startAt     DateTime?
   endAt       DateTime?
   usageLimit  Int?
@@ -766,7 +408,6 @@ model Voucher {
   isActive    Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime @default(now()) @updatedAt
-  checkoutDrafts CheckoutDraft[]
 
   orders Order[]
 }
@@ -788,13 +429,6 @@ model Order {
   currency     String     @default("VND")
   note         String?
 
-  // Selected shipping option snapshot
-  shippingCarrier     String?
-  shippingServiceName String?
-  shippingOptionCode  String?
-  shippingEtaMinDays  Int?
-  shippingEtaMaxDays  Int?
-
   shipFullName String
   shipPhone    String
   shipLine1    String
@@ -808,9 +442,6 @@ model Order {
 
   voucherId Int?
   voucher   Voucher? @relation(fields: [voucherId], references: [id], onDelete: SetNull)
-
-  shopVoucherId Int?
-  shopVoucher   ShopVoucher? @relation(fields: [shopVoucherId], references: [id], onDelete: SetNull)
 
   items               OrderItem[]
   paymentTransactions Payment[]
@@ -829,10 +460,6 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([groupCode])
-<<<<<<< HEAD
-=======
-  @@index([shopVoucherId])
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
 }
 
 model OrderItem {
@@ -845,8 +472,6 @@ model OrderItem {
   sku       SKU      @relation(fields: [skuId], references: [id])
   name      String
   unitPrice Int
-  // Snapshot SKU cost price (COGS) at the time of order.
-  costPrice Int?
   qty       Int
   lineTotal Int
   createdAt DateTime @default(now())
@@ -906,9 +531,6 @@ model CancelRequest {
   order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   userId       Int
   user         User         @relation("CancelRequestedBy", fields: [userId], references: [id], onDelete: Cascade)
-  /// Order status at the time buyer requested cancellation.
-  /// Used to restore order status if seller rejects the request.
-  originalStatus OrderStatus @default(CONFIRMED)
   reason       String
   status       RequestStatus @default(REQUESTED)
   resolvedById Int?
@@ -928,22 +550,8 @@ model ReturnRequest {
   userId         Int
   user           User         @relation("ReturnRequestedBy", fields: [userId], references: [id], onDelete: Cascade)
   reason         String
-  /// Optional: classify the request so policies can be applied.
-  /// Example values: CHANGE_MIND, DEFECTIVE, WRONG_ITEM, NOT_AS_DESCRIBED, OTHER
-  requestType    String?
   status         ReturnStatus @default(REQUESTED)
   evidenceUrlsJson String?
-  /// Seller decision / policy fields (to avoid seller loss for abusive returns)
-  /// resolution: BUYER_FAULT | SELLER_FAULT
-  resolution     String?
-  /// shippingPayer: BUYER | SELLER
-  shippingPayer  String?
-  /// Restocking fee (VND) - deducted from refund when BUYER_FAULT.
-  restockingFee  Int?
-  /// Refund amount (VND). If null, system will compute.
-  refundAmount   Int?
-  /// Seller note / decision note.
-  decisionNote   String?
   resolvedById   Int?
   resolvedBy     User?        @relation("ReturnResolvedBy", fields: [resolvedById], references: [id])
   resolvedAt     DateTime?
@@ -979,24 +587,11 @@ model Dispute {
   user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   type          String?
   message       String
-  /// Evidence images uploaded by customer (array of public URLs, stored as JSON string)
-  mediaUrlsJson String? @db.Text
-  sellerResponse String? @db.Text
-  sellerRespondedAt DateTime?
   status        DisputeStatus @default(OPEN)
   resolution    String?
   resolvedById  Int?
   resolvedBy    User?        @relation("DisputeResolvedBy", fields: [resolvedById], references: [id])
   resolvedAt    DateTime?
-
-  /// Request to revise admin decision (only allow one revision)
-  revisionRequestedAt   DateTime?
-  revisionRequestedById Int?
-  revisionRequestedBy   User?        @relation("DisputeRevisionRequestedBy", fields: [revisionRequestedById], references: [id], onDelete: SetNull)
-  revisionRequestedByRole String?
-  revisionRequestNote   String? @db.Text
-  /// Admin can edit resolution only once if a revision request exists
-  editCount Int @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
 
@@ -1034,24 +629,20 @@ model Review {
   shopId    Int?
   shop      Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
   rating    Int
-  content   String? @db.Text
-  /// Buyer can edit rating/content only once.
-  editCount Int @default(0)
-  mediaUrlsJson String? @db.Text
+  content   String?
+  mediaUrlsJson String?
   status    ReviewStatus @default(VISIBLE)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   reports ReviewReport[]
   replies ReviewReply[]
-  buyerFollowUp ReviewBuyerFollowUp?
-  sellerFollowUp ReviewSellerFollowUp?
 
   @@index([productId])
   @@index([shopId])
   @@index([status])
   @@unique([userId, productId])
-  @@index([userId, shopId])
+  @@unique([userId, shopId])
 }
 
 model ReviewReply {
@@ -1060,76 +651,11 @@ model ReviewReply {
   review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   shopId    Int
   shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  content   String @db.Text
-  /// Seller can edit reply only once.
-  editCount Int @default(0)
+  content   String
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([reviewId])
   @@index([shopId])
-  @@unique([reviewId, shopId])
-}
-
-/// Optional follow-up message from buyer after seller replied.
-/// One follow-up per review to keep the thread simple (Shopee-like).
-model ReviewBuyerFollowUp {
-  id        Int      @id @default(autoincrement())
-  reviewId  Int      @unique
-  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content   String @db.Text
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-/// Optional follow-up from seller after buyer follow-up.
-model ReviewSellerFollowUp {
-  id        Int      @id @default(autoincrement())
-  reviewId  Int      @unique
-  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
-  shopId    Int
-  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  content   String @db.Text
-  createdAt DateTime @default(now())
-
-  @@index([shopId])
-}
-
-model ShopReport {
-  id          Int             @id @default(autoincrement())
-  shopId      Int
-  shop        Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
-
-  reporterId  Int
-  reporter    User            @relation("ShopReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-
-  reason      String
-  description String?         @db.Text
-  status      ShopReportStatus @default(OPEN)
-
-  // Classification & anti-abuse
-  category    String? // e.g. FRAUD, COUNTERFEIT, SERVICE, POLICY
-  severity    ShopReportSeverity @default(LOW)
-  isVerifiedPurchase Boolean @default(false)
-
-  // Resolution for ratio-based enforcement
-  resolution  ShopReportResolution @default(PENDING)
-  resolutionNote String? @db.Text
-  pointsApplied Int @default(0)
-
-  resolvedAt  DateTime?
-  resolvedById Int?
-  resolvedBy  User?           @relation("ShopReportResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
-
-  createdAt   DateTime        @default(now())
-
-  @@index([shopId])
-  @@index([reporterId])
-  @@index([status])
-  @@index([createdAt])
 }
 
 model ReviewReport {

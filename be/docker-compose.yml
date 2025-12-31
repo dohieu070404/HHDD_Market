@@ -31,7 +31,9 @@ services:
       DATABASE_URL: "mysql://shopuser:shoppass@mysql:3306/shopdb"
       JWT_SECRET: "change_me_super_secret"
       JWT_EXPIRES_IN: "7d"
-      AUTO_DB_PUSH: "true"
+      # Migration-first: dùng prisma migrate deploy.
+      # Seed demo data (tuỳ chọn)
+      AUTO_SEED: "true"
     ports:
       - "8080:8080"
     depends_on:
