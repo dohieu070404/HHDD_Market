@@ -74,33 +74,6 @@ app.use("/api/admin", adminRoutes);
 
 // Central error handler
 app.use((err, req, res, next) => {
-<<<<<<< HEAD
-    console.error(err);
-
-    // JSON parse error (body-parser)
-    if (err && err.type === "entity.parse.failed") {
-        return res.status(400).json({ success: false, message: "JSON không hợp lệ" });
-    }
-
-    // Zod validation errors
-    if (err && (err.name === "ZodError" || err.issues)) {
-        const issues = err.issues || [];
-        return res.status(400).json({
-            success: false,
-            message: "Dữ liệu không hợp lệ",
-            details: issues.map((i) => ({
-                path: i.path,
-                message: i.message,
-            })),
-        });
-    }
-
-    const status = err.status || 500;
-    res.status(status).json({
-        success: false,
-        message: err.message || "Lỗi hệ thống",
-        details: err.details || undefined,
-=======
   const safe = {
     ts: new Date().toISOString(),
     level: "error",
@@ -138,7 +111,6 @@ app.use((err, req, res, next) => {
         path: i.path,
         message: i.message,
       })),
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
     });
   }
 

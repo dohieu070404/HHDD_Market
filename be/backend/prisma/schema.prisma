@@ -24,9 +24,6 @@ enum ShopStatus {
   PENDING
   ACTIVE
   SUSPENDED
-<<<<<<< HEAD
-  REJECTED
-=======
   HIDDEN
   BANNED
   REJECTED
@@ -64,7 +61,6 @@ enum ShopReportStatus {
   OPEN
   RESOLVED
   DISMISSED
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
 }
 
 enum ProductStatus {
@@ -829,10 +825,7 @@ model Order {
   @@index([status])
   @@index([createdAt])
   @@index([groupCode])
-<<<<<<< HEAD
-=======
   @@index([shopVoucherId])
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
 }
 
 model OrderItem {

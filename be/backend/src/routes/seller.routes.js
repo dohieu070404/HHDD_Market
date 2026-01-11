@@ -8,7 +8,7 @@ const { httpError } = require("../utils/httpError");
 const { z } = require("zod");
 const { slugify } = require("../utils/slugify");
 const { createShipment, updateShipmentStatus } = require("../services/shipping.service");
-const { refundPayment } = require("../services/payment.service");
+const { refundPayment, captureCodPaymentIfNeeded } = require("../services/payment.service");
 const { notify } = require("../services/notification.service");
 const { imageUpload, excelUpload } = require("../middleware/upload.middleware");
 const XLSX = require("xlsx");
@@ -49,15 +49,37 @@ async function restockOrderItems(tx, orderId) {
   }
 }
 
+// Orders that should be counted into revenue/profit.
+//
+// Important: a RETURN_RECEIVED order means the goods were returned to the seller and
+// inventory has been restocked -> this sale should NOT be counted as revenue/profit.
+// Similarly, a REFUNDED order (refund-only flow) should not be counted as revenue.
+//
+// We still include "in-flight" states like RETURN_REQUESTED/RETURN_APPROVED/REFUND_REQUESTED
+// so the dashboard reflects revenue at risk until the workflow is finalized.
+const REVENUE_ORDER_STATUSES = [
+  "DELIVERED",
+  "COMPLETED",
+  "RETURN_REQUESTED",
+  "RETURN_APPROVED",
+  "RETURN_REJECTED",
+  "REFUND_REQUESTED",
+  "DISPUTED",
+];
+
+// Seller can only directly cancel orders in early states (before shipping / post-delivery flows).
+const SELLER_DIRECT_CANCEL_ALLOWED_STATUSES = ["PENDING_PAYMENT", "PLACED", "CONFIRMED", "PACKING"];
+
 // --- Dashboard KPI ---
 router.get(
   "/dashboard/kpi",
   asyncHandler(async (req, res) => {
     const shop = await mustGetMyShop(req.user.sub);
 
-    // Revenue: sum of delivered orders (gross).
+    // Revenue: gross (before refunds). We include return/refund statuses so revenue doesn't disappear
+    // when an order goes into a return/refund workflow.
     const revenueAgg = await prisma.order.aggregate({
-      where: { shopId: shop.id, status: { in: ["DELIVERED", "REFUNDED"] } },
+      where: { shopId: shop.id, status: { in: REVENUE_ORDER_STATUSES } },
       _sum: { total: true },
     });
 
@@ -205,39 +227,23 @@ router.delete(
 );
 
 // --- Shipping config (shipping options) ---
-function safeParseJson(jsonStr, fallback) {
-  try {
-    const v = JSON.parse(jsonStr);
-    return v ?? fallback;
-  } catch (e) {
-    return fallback;
-  }
+// Simplified model: chỉ dùng các trường thực sự cần cho checkout (phí cố định + free-ship threshold + ETA).
+function genShipCode(prefix = "SHIP") {
+  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2, 6)}`.toUpperCase();
 }
 
-const zoneSchema = z.object({
-  province: z.string().min(1).max(100).optional(),
-  city: z.string().min(1).max(100).optional(),
-  district: z.string().min(1).max(100).optional(),
-});
-
 const shippingConfigSchema = z.object({
-  carrier: z.string().min(2).max(50),
-  code: z.string().min(2).max(64),
   serviceName: z.string().min(2).max(191),
   description: z.string().max(2000).optional(),
   isActive: z.boolean().optional(),
 
+  // Pricing (VND) - phí cố định cho mỗi đơn của shop
   baseFee: z.number().int().nonnegative().optional(),
-  feePerItem: z.number().int().nonnegative().optional(),
-  feePerKg: z.number().int().nonnegative().optional(),
   freeShippingOver: z.number().int().nonnegative().optional().nullable(),
 
+  // ETA
   minDays: z.number().int().nonnegative().optional(),
   maxDays: z.number().int().nonnegative().optional(),
-  maxWeightGram: z.number().int().positive().optional().nullable(),
-  codSupported: z.boolean().optional(),
-
-  zones: z.array(zoneSchema).optional(),
 });
 
 // List shipping options
@@ -256,15 +262,15 @@ router.get(
         data: [
           {
             shopId: shop.id,
-            carrier: "MockCarrier",
-            code: "MOCK_STD",
+            carrier: "Manual",
+            code: "SHIP_STD",
             serviceName: "Giao tiêu chuẩn",
-            description: "2–4 ngày (mặc định)",
+            description: "2–4 ngày",
             isActive: true,
             baseFee: 20000,
-            feePerItem: 1000,
-            feePerKg: 5000,
-            freeShippingOver: null,
+            feePerItem: 0,
+            feePerKg: 0,
+            freeShippingOver: 500000,
             minDays: 2,
             maxDays: 4,
             maxWeightGram: null,
@@ -273,14 +279,14 @@ router.get(
           },
           {
             shopId: shop.id,
-            carrier: "MockCarrier",
-            code: "MOCK_EXP",
+            carrier: "Manual",
+            code: "SHIP_FAST",
             serviceName: "Giao nhanh",
             description: "1–2 ngày",
             isActive: true,
             baseFee: 35000,
-            feePerItem: 1500,
-            feePerKg: 8000,
+            feePerItem: 0,
+            feePerKg: 0,
             freeShippingOver: null,
             minDays: 1,
             maxDays: 2,
@@ -298,12 +304,7 @@ router.get(
       });
     }
 
-    const items = list.map((cfg) => ({
-      ...cfg,
-      zones: safeParseJson(cfg.zonesJson || "[]", []),
-    }));
-
-    res.json({ success: true, data: items });
+    res.json({ success: true, data: list });
   })
 );
 
@@ -317,24 +318,24 @@ router.post(
     const created = await prisma.shippingConfig.create({
       data: {
         shopId: shop.id,
-        carrier: body.carrier,
-        code: body.code,
+        carrier: "Manual",
+        code: genShipCode("SHIP"),
         serviceName: body.serviceName,
         description: body.description || null,
         isActive: body.isActive ?? true,
         baseFee: body.baseFee ?? 0,
-        feePerItem: body.feePerItem ?? 0,
-        feePerKg: body.feePerKg ?? 0,
+        feePerItem: 0,
+        feePerKg: 0,
         freeShippingOver: body.freeShippingOver ?? null,
         minDays: body.minDays ?? 2,
         maxDays: body.maxDays ?? 4,
-        maxWeightGram: body.maxWeightGram ?? null,
-        codSupported: body.codSupported ?? true,
-        zonesJson: body.zones ? JSON.stringify(body.zones) : null,
+        maxWeightGram: null,
+        codSupported: true,
+        zonesJson: null,
       },
     });
 
-    res.status(201).json({ success: true, data: { ...created, zones: body.zones || [] } });
+    res.status(201).json({ success: true, data: created });
   })
 );
 
@@ -352,24 +353,24 @@ router.put(
     const updated = await prisma.shippingConfig.update({
       where: { id },
       data: {
-        carrier: body.carrier ?? cfg.carrier,
-        code: body.code ?? cfg.code,
         serviceName: body.serviceName ?? cfg.serviceName,
         description: body.description ?? cfg.description,
         isActive: body.isActive ?? cfg.isActive,
         baseFee: body.baseFee ?? cfg.baseFee,
-        feePerItem: body.feePerItem ?? cfg.feePerItem,
-        feePerKg: body.feePerKg ?? cfg.feePerKg,
         freeShippingOver: body.freeShippingOver === undefined ? cfg.freeShippingOver : body.freeShippingOver,
         minDays: body.minDays ?? cfg.minDays,
         maxDays: body.maxDays ?? cfg.maxDays,
-        maxWeightGram: body.maxWeightGram === undefined ? cfg.maxWeightGram : body.maxWeightGram,
-        codSupported: body.codSupported ?? cfg.codSupported,
-        zonesJson: body.zones ? JSON.stringify(body.zones) : cfg.zonesJson,
+
+        // Force-disable advanced pricing/constraints to keep behavior simple & predictable
+        feePerItem: 0,
+        feePerKg: 0,
+        maxWeightGram: null,
+        codSupported: true,
+        zonesJson: null,
       },
     });
 
-    res.json({ success: true, data: { ...updated, zones: safeParseJson(updated.zonesJson || "[]", []) } });
+    res.json({ success: true, data: updated });
   })
 );
 
@@ -409,9 +410,24 @@ const productSchema = z.object({
   description: z.string().max(5000).optional(),
   categoryId: z.number().int().positive().optional(),
   price: z.number().int().nonnegative(),
-  compareAtPrice: z.number().int().nonnegative().optional(),
+  // Allow null so seller can "clear" the strike-through price when ending a flash sale.
+  compareAtPrice: z.number().int().nonnegative().nullable().optional(),
   thumbnailUrl: z.string().url().optional(),
   status: z.enum(["DRAFT", "ACTIVE", "HIDDEN"]).optional(),
+});
+
+// Create schema extends product fields with default SKU fields.
+// This makes the manual "Thêm sản phẩm" form closer to the Excel import columns.
+const productCreateSchema = productSchema.extend({
+  // Default SKU
+  skuCode: z.string().min(1).max(80).optional(),
+  skuName: z.string().min(1).max(200).optional(),
+  stock: z.number().int().nonnegative().optional(),
+  costPrice: z.number().int().nonnegative().optional(),
+  weightGram: z.number().int().nonnegative().optional(),
+
+  // Images (comma-separated URLs)
+  imageUrls: z.string().optional(),
 });
 
 function genSkuCode(prefix = "SKU") {
@@ -421,17 +437,17 @@ function genSkuCode(prefix = "SKU") {
 // --- Excel import helpers ---
 function buildImportTemplateBuffer(categories = []) {
   const headers = [
-    "name*",
-    "categorySlug",
-    "price* (VND)",
-    "compareAtPrice",
-    "costPrice",
-    "stock",
-    "skuCode (optional for update)",
-    "weightGram",
-    "thumbnailUrl",
-    "imageUrls (comma)",
-    "description",
+    "name (Tên sản phẩm) *",
+    "categorySlug (Slug danh mục)",
+    "price (Giá bán - VND) *",
+    "compareAtPrice (Giá gạch)",
+    "costPrice (Giá nhập)",
+    "stock (Tồn kho)",
+    "skuCode (Mã SKU - dùng để cập nhật)",
+    "weightGram (Khối lượng - gram)",
+    "thumbnailUrl (Ảnh đại diện)",
+    "imageUrls (Danh sách ảnh - phân cách dấu phẩy)",
+    "description (Mô tả)",
     "status (ACTIVE/HIDDEN/DRAFT)",
   ];
 
@@ -458,7 +474,7 @@ function buildImportTemplateBuffer(categories = []) {
   XLSX.utils.book_append_sheet(wb, wsProducts, "Products");
 
   // Sheet: Categories (for quick copy/paste of valid slugs)
-  const catHeaders = ["slug", "name"];
+  const catHeaders = ["slug (mã danh mục)", "name (tên danh mục)"];
   const catRows = (categories || []).map((c) => [c.slug, c.name]);
   const wsCats = XLSX.utils.aoa_to_sheet([catHeaders, ...catRows]);
   wsCats["!cols"] = [{ wch: 32 }, { wch: 36 }];
@@ -508,33 +524,61 @@ router.post(
     }
 
     // Header mapping: accept reordered columns as long as headers exist.
-    const headerRow = (rows[0] || []).map((v) => String(v || "").trim());
-    const headerLower = headerRow.map((v) => v.toLowerCase());
-    const hasHeader = headerLower.includes("name") || headerLower.includes("price") || headerLower.includes("categoryslug");
+    // The template may include Vietnamese explanations, asterisks (*) or units in the header.
+    // Example: "price (Giá bán - VND) *" should still be recognized as "price".
+    const headerRowRaw = (rows[0] || []).map((v) => String(v || "").trim());
+
+    function normalizeHeaderKey(v) {
+      let s = String(v || "").trim();
+      if (!s) return "";
+      // Remove explanations in parentheses
+      s = s.split("(")[0].trim();
+      // Take the first token
+      s = s.split(/\s+/)[0].trim();
+      // Remove special chars like *
+      s = s.replace(/[^a-zA-Z0-9]/g, "");
+      return s.toLowerCase();
+    }
+
+    const headerKeys = headerRowRaw.map(normalizeHeaderKey);
+    const headerIndex = new Map();
+    headerKeys.forEach((k, idx) => {
+      if (!k) return;
+      if (!headerIndex.has(k)) headerIndex.set(k, idx);
+    });
+
+    const hasHeader = headerKeys.includes("name") || headerKeys.includes("price") || headerKeys.includes("categoryslug");
+
+    function normalizeAlias(a) {
+      return String(a || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+    }
 
     function findCol(aliases) {
       for (const a of aliases) {
-        const idx = headerLower.indexOf(String(a).toLowerCase());
-        if (idx >= 0) return idx;
+        const key = normalizeAlias(a);
+        const idx = headerIndex.get(key);
+        if (typeof idx === "number") return idx;
       }
       return -1;
     }
 
     const col = hasHeader
       ? {
-          name: findCol(["name"]),
-          categorySlug: findCol(["categoryslug", "category", "category slug"]),
-          price: findCol(["price"]),
-          compareAtPrice: findCol(["compareatprice", "compare at price"]),
-          costPrice: findCol(["costprice", "cost price"]),
-          stock: findCol(["stock"]),
-          skuCode: findCol(["skucode", "sku code", "sku"]),
-          weightGram: findCol(["weightgram", "weight gram"]),
-          thumbnailUrl: findCol(["thumbnailurl", "thumbnail url", "thumbnail"]),
-          imageUrls: findCol(["imageurls", "image urls", "images"]),
-          description: findCol(["description"]),
-          status: findCol(["status"]),
-        }
+        name: findCol(["name"]),
+        categorySlug: findCol(["categoryslug", "category", "category slug"]),
+        price: findCol(["price"]),
+        compareAtPrice: findCol(["compareatprice", "compare at price"]),
+        costPrice: findCol(["costprice", "cost price"]),
+        stock: findCol(["stock"]),
+        skuCode: findCol(["skucode", "sku code", "sku"]),
+        weightGram: findCol(["weightgram", "weight gram"]),
+        thumbnailUrl: findCol(["thumbnailurl", "thumbnail url", "thumbnail"]),
+        imageUrls: findCol(["imageurls", "image urls", "images"]),
+        description: findCol(["description"]),
+        status: findCol(["status"]),
+      }
       : null;
 
     if (hasHeader && (col.name < 0 || col.price < 0)) {
@@ -683,7 +727,7 @@ router.post(
             data: {
               productId: p.id,
               skuCode: code,
-              name: "Default",
+              name: "Mặc định",
               stock,
               costPrice: costPrice == null ? null : costPrice,
               weightGram: weightGram == null ? null : weightGram,
@@ -734,7 +778,7 @@ router.get(
 router.post(
   "/products",
   asyncHandler(async (req, res) => {
-    const body = productSchema.parse(req.body);
+    const body = productCreateSchema.parse(req.body);
     const shop = await mustGetMyShop(req.user.sub);
 
     const baseSlug = slugify(body.name);
@@ -757,16 +801,34 @@ router.post(
         },
       });
 
-      // default SKU
+      // default SKU (allow setting from manual form)
       await tx.sKU.create({
         data: {
           productId: p.id,
-          skuCode: genSkuCode(),
-          name: "Default",
-          costPrice: Math.floor(Number(body.price || 0) * 0.6) || null,
-          stock: 100,
+          skuCode: body.skuCode || genSkuCode(),
+          // UI manual create: không bắt seller phải nhập Tên SKU (mặc định = "Mặc định")
+          name: body.skuName || "Mặc định",
+          costPrice: body.costPrice == null ? null : body.costPrice,
+          weightGram: body.weightGram == null ? null : body.weightGram,
+          stock: body.stock == null ? 0 : body.stock,
         },
       });
+
+      // Optional images (comma-separated URLs)
+      if (body.imageUrls) {
+        const list = String(body.imageUrls)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        for (const url of list) {
+          if (!/^https?:\/\//i.test(url)) continue;
+          await tx.productImage.create({ data: { productId: p.id, url } });
+        }
+        // If no thumbnailUrl provided, use first image as thumbnail
+        if (!body.thumbnailUrl && list[0] && /^https?:\/\//i.test(list[0])) {
+          await tx.product.update({ where: { id: p.id }, data: { thumbnailUrl: list[0] } });
+        }
+      }
 
       return p;
     });
@@ -889,9 +951,26 @@ router.delete(
     const shop = await mustGetMyShop(req.user.sub);
     const p = await prisma.product.findFirst({ where: { id, shopId: shop.id } });
     if (!p) throw httpError(404, "Không tìm thấy sản phẩm");
-    // soft delete
-    await prisma.product.update({ where: { id }, data: { status: "HIDDEN" } });
-    res.json({ success: true, message: "Đã ẩn sản phẩm" });
+
+    // Hard delete (xóa hẳn) để đúng mong muốn ở màn Kho hàng.
+    // LƯU Ý: Không cho phép xóa nếu đã phát sinh đơn hàng (để không phá lịch sử đơn / FK).
+    const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
+    if (orderItemCount > 0) {
+      throw httpError(
+        409,
+        "Không thể xoá sản phẩm vì đã phát sinh đơn hàng. Bạn có thể chuyển trạng thái sang HIDDEN để ẩn khỏi gian hàng."
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Checkout drafts tham chiếu SKU/Product (FK không cascade), nên cần dọn trước.
+      await tx.checkoutDraftItem.deleteMany({ where: { productId: id } });
+
+      // Xóa product sẽ cascade xuống SKU, ProductImage, WishlistItem, Review,... theo schema.
+      await tx.product.delete({ where: { id } });
+    });
+
+    res.json({ success: true, message: "Đã xoá sản phẩm" });
   })
 );
 
@@ -1136,7 +1215,13 @@ router.post(
     let orderStatus = order.status;
     if (body.status === "DELIVERED") orderStatus = "DELIVERED";
     if (body.status === "IN_TRANSIT") orderStatus = "SHIPPED";
-    await prisma.order.update({ where: { id: order.id }, data: { status: orderStatus } });
+    // If the order becomes DELIVERED, capture COD payment (COD is created as UNPAID at checkout).
+    await prisma.$transaction(async (tx) => {
+      if (orderStatus === "DELIVERED") {
+        await captureCodPaymentIfNeeded(order.id, tx);
+      }
+      await tx.order.update({ where: { id: order.id }, data: { status: orderStatus } });
+    });
 
     await notify(order.userId, { type: "SHIPMENT_UPDATE", title: `Cập nhật vận đơn ${shipment.trackingCode}`, body: body.message || body.status, data: { orderCode: order.code, status: shipment.status } });
     res.json({ success: true, message: "Đã cập nhật vận đơn", data: shipment });
@@ -1154,7 +1239,11 @@ router.post(
     const order = await prisma.order.findFirst({ where: { code, shopId: shop.id } });
     if (!order) throw httpError(404, "Không tìm thấy đơn hàng");
     if (order.status === "CANCELLED") throw httpError(400, "Đơn đã được huỷ");
-    if (['SHIPPED', 'DELIVERED'].includes(order.status)) throw httpError(400, "Không thể huỷ khi đã giao");
+    // Prevent illogical cancellation after the order has been shipped / delivered
+    // or is in any post-delivery workflow (return/refund/dispute).
+    if (!SELLER_DIRECT_CANCEL_ALLOWED_STATUSES.includes(order.status)) {
+      throw httpError(400, "Không thể huỷ đơn ở trạng thái hiện tại");
+    }
     // Cancel + restock (seller-initiated cancellation)
     const updated = await prisma.$transaction(async (tx) => {
       const u = await tx.order.update({ where: { id: order.id }, data: { status: "CANCELLED" } });
@@ -1317,9 +1406,13 @@ router.post(
     if (Number.isNaN(amount)) amount = Number(order.total);
     amount = Math.max(0, Math.min(Number(order.total), amount));
 
-    const refund = await refundPayment(order.id, amount);
+    const result = await prisma.$transaction(async (tx) => {
+      // COD orders are created as UNPAID at checkout in this demo.
+      // When a post-delivery refund happens (return received), we treat COD as paid and allow refund.
+      await captureCodPaymentIfNeeded(order.id, tx);
 
-    await prisma.$transaction(async (tx) => {
+      const refund = await refundPayment(order.id, amount, tx);
+
       await tx.returnRequest.update({
         where: { id: order.returnRequest.id },
         data: {
@@ -1336,14 +1429,140 @@ router.post(
         create: { orderId: order.id, amount, status: refund.ok ? "SUCCESS" : "FAILED", providerRef: refund.ok ? refund.providerRef : null, processedById: req.user.sub },
       });
 
-      // Restock
-      for (const it of order.items) {
-        await tx.sKU.update({ where: { id: it.skuId }, data: { stock: { increment: it.qty } } });
-      }
+      // Restock SKU + rollback product soldCount
+      await restockOrderItems(tx, order.id);
+
+      return { refund };
     });
+
+    const refund = result.refund;
 
     await notify(order.userId, { type: "RETURN_RECEIVED", title: `Shop đã nhận hàng hoàn - ${order.code}`, body: refund.ok ? "Đã hoàn tiền" : "Hoàn tiền thất bại, CS sẽ xử lý", data: { orderCode: order.code } });
     res.json({ success: true, message: "Đã nhận hàng hoàn & xử lý", data: { refund } });
+  })
+);
+
+
+
+// --- Refund requests (refund-only) ---
+router.get(
+  "/refund-requests",
+  asyncHandler(async (req, res) => {
+    const shop = await mustGetMyShop(req.user.sub);
+    const list = await prisma.refund.findMany({
+      where: { order: { shopId: shop.id } },
+      include: {
+        order: {
+          select: {
+            id: true,
+            code: true,
+            total: true,
+            status: true,
+            user: { select: { id: true, username: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    res.json({ success: true, data: list });
+  })
+);
+
+// Seller approves a refund-only request and attempts to execute refund
+router.post(
+  "/orders/:code/refund-approve",
+  asyncHandler(async (req, res) => {
+    const shop = await mustGetMyShop(req.user.sub);
+    const code = req.params.code;
+
+    const order = await prisma.order.findFirst({
+      where: { code, shopId: shop.id },
+      include: { refund: true },
+    });
+    if (!order) throw httpError(404, "Không tìm thấy đơn");
+    if (!order.refund) throw httpError(404, "Không có yêu cầu hoàn tiền");
+
+    // Allow retry for FAILED, otherwise only REQUESTED
+    if (!['REQUESTED', 'FAILED'].includes(order.refund.status)) {
+      throw httpError(400, "Yêu cầu đã được xử lý");
+    }
+
+    const amount = Number(order.refund.amount || order.total);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Mark as processing first
+      await tx.refund.update({ where: { orderId: order.id }, data: { status: "PROCESSING", processedById: req.user.sub } });
+
+      // COD orders are created as UNPAID at checkout in this demo.
+      // When approving a post-delivery refund-only request, treat COD as paid and allow refund.
+      await captureCodPaymentIfNeeded(order.id, tx);
+
+      const refund = await refundPayment(order.id, amount, tx);
+
+      const updated = await tx.refund.update({
+        where: { orderId: order.id },
+        data: {
+          status: refund.ok ? "SUCCESS" : "FAILED",
+          providerRef: refund.ok ? refund.providerRef : null,
+          processedById: req.user.sub,
+        },
+      });
+
+      await tx.order.update({ where: { id: order.id }, data: { status: refund.ok ? "REFUNDED" : "REFUND_REQUESTED" } });
+
+      return { updated, refund };
+    });
+
+    await notify(order.userId, {
+      type: "REFUND_UPDATE",
+      title: `Hoàn tiền đơn ${order.code}`,
+      body: result.refund.ok
+        ? "Shop đã chấp nhận yêu cầu và hệ thống đã hoàn tiền."
+        : "Shop đã chấp nhận nhưng hoàn tiền tự động thất bại (CS sẽ liên hệ để xử lý).",
+      data: { orderCode: order.code, refundStatus: result.updated.status },
+    });
+
+    res.json({
+      success: true,
+      message: result.refund.ok ? "Đã xử lý hoàn tiền" : "Duyệt hoàn tiền nhưng hoàn tự động thất bại",
+      data: result.updated,
+    });
+  })
+);
+
+// Seller rejects a refund-only request
+router.post(
+  "/orders/:code/refund-reject",
+  asyncHandler(async (req, res) => {
+    const shop = await mustGetMyShop(req.user.sub);
+    const code = req.params.code;
+    const body = z.object({ reason: z.string().min(3).max(500) }).parse(req.body);
+
+    const order = await prisma.order.findFirst({
+      where: { code, shopId: shop.id },
+      include: { refund: true, dispute: true },
+    });
+    if (!order) throw httpError(404, "Không tìm thấy đơn");
+    if (!order.refund) throw httpError(404, "Không có yêu cầu hoàn tiền");
+    if (order.refund.status !== "REQUESTED") throw httpError(400, "Yêu cầu đã được xử lý");
+
+    // If there is an open dispute, keep order in DISPUTED. Otherwise revert to DELIVERED.
+    const revertStatus = order.dispute && ["OPEN", "UNDER_REVIEW"].includes(order.dispute.status) ? "DISPUTED" : "DELIVERED";
+
+    await prisma.$transaction([
+      prisma.refund.update({ where: { orderId: order.id }, data: { status: "REJECTED", processedById: req.user.sub } }),
+      prisma.order.update({ where: { id: order.id }, data: { status: revertStatus } }),
+    ]);
+
+    await notify(order.userId, {
+      type: "REFUND_REJECTED",
+      title: `Yêu cầu hoàn tiền đơn ${order.code} bị từ chối`,
+      body: body.reason,
+      data: { orderCode: order.code },
+    });
+
+    res.json({ success: true, message: "Đã từ chối yêu cầu hoàn tiền" });
   })
 );
 
@@ -1378,13 +1597,15 @@ router.get(
   "/reviews",
   asyncHandler(async (req, res) => {
     const shop = await mustGetMyShop(req.user.sub);
-    const reviews = await prisma.review.findMany({ where: { shopId: shop.id }, orderBy: { createdAt: "desc" }, include: {
+    const reviews = await prisma.review.findMany({
+      where: { shopId: shop.id }, orderBy: { createdAt: "desc" }, include: {
         user: { select: { id: true, username: true } },
         product: { select: { id: true, name: true } },
         replies: { include: { shop: { select: { id: true, name: true, slug: true } } } },
         buyerFollowUp: true,
         sellerFollowUp: true,
-      } });
+      }
+    });
     res.json({ success: true, data: reviews });
   })
 );
@@ -1407,7 +1628,7 @@ router.post(
       return res.status(201).json({ success: true, message: "Đã phản hồi đánh giá", data: created });
     }
     if (Number(existing.editCount || 0) >= 1) {
-      throw httpError(400, "Bạn chỉ được chỉnh sửa phản hồi 1 lần" );
+      throw httpError(400, "Bạn chỉ được chỉnh sửa phản hồi 1 lần");
     }
     const updated = await prisma.reviewReply.update({
       where: { id: existing.id },
@@ -1427,9 +1648,9 @@ router.post(
     const review = await prisma.review.findFirst({ where: { id: reviewId, shopId: shop.id } });
     if (!review) throw httpError(404, "Không tìm thấy review");
     const buyerFollowUp = await prisma.reviewBuyerFollowUp.findUnique({ where: { reviewId } });
-    if (!buyerFollowUp) throw httpError(400, "Người mua chưa phản hồi thêm" );
+    if (!buyerFollowUp) throw httpError(400, "Người mua chưa phản hồi thêm");
     const existing = await prisma.reviewSellerFollowUp.findUnique({ where: { reviewId } });
-    if (existing) throw httpError(409, "Bạn chỉ được phản hồi thêm 1 lần" );
+    if (existing) throw httpError(409, "Bạn chỉ được phản hồi thêm 1 lần");
     const created = await prisma.reviewSellerFollowUp.create({ data: { reviewId, shopId: shop.id, content: body.content } });
     res.status(201).json({ success: true, message: "Đã phản hồi thêm", data: created });
   })
@@ -1613,7 +1834,21 @@ router.put(
     res.json({ success: true, data: updated });
   })
 );
+//xoa van chuyen
+router.delete(
+  "/shipping-config/:id",
+  asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    const shop = await mustGetMyShop(req.user.sub);
 
+    const cfg = await prisma.shippingConfig.findFirst({ where: { id, shopId: shop.id } });
+    if (!cfg) throw httpError(404, "Không tìm thấy cấu hình");
+
+    await prisma.shippingConfig.delete({ where: { id } });
+
+    res.json({ success: true });
+  })
+);
 router.delete(
   "/vouchers/:id",
   asyncHandler(async (req, res) => {
@@ -1730,12 +1965,22 @@ const payoutRequestSchema = z.object({
 });
 
 async function calcFinanceSummary(shopId) {
-  const [deliveredAgg, refundAgg, payoutReservedAgg, payoutPaidAgg, deliveredItems] = await Promise.all([
+  const [deliveredAgg, refundAppliedAgg, refundTotalAgg, payoutReservedAgg, payoutPaidAgg, deliveredItems] = await Promise.all([
     prisma.order.aggregate({
-      where: { shopId, status: "DELIVERED" },
+      // Include post-delivery return/refund statuses so revenue doesn't disappear
+      // when an order enters a return/refund workflow.
+      where: { shopId, status: { in: REVENUE_ORDER_STATUSES } },
       _sum: { subtotal: true, discount: true, total: true },
     }),
     prisma.refund.aggregate({
+      // Only apply refunds to finance numbers when the related order is still
+      // counted as revenue. This prevents negative profit/revenue when the order
+      // has already been reversed (e.g. RETURN_RECEIVED / REFUNDED / CANCELLED).
+      where: { order: { shopId, status: { in: REVENUE_ORDER_STATUSES } }, status: "SUCCESS" },
+      _sum: { amount: true },
+    }),
+    prisma.refund.aggregate({
+      // Total refunds for reference (includes cancelled/returned orders).
       where: { order: { shopId }, status: "SUCCESS" },
       _sum: { amount: true },
     }),
@@ -1748,7 +1993,7 @@ async function calcFinanceSummary(shopId) {
       _sum: { amount: true },
     }),
     prisma.orderItem.findMany({
-      where: { order: { shopId, status: "DELIVERED" } },
+      where: { order: { shopId, status: { in: REVENUE_ORDER_STATUSES } } },
       select: { qty: true, costPrice: true },
     }),
   ]);
@@ -1758,7 +2003,8 @@ async function calcFinanceSummary(shopId) {
   const voucherDiscount = deliveredAgg._sum.discount || 0;
   const grossRevenue = deliveredAgg._sum.total || 0; // backward compatible
 
-  const refunds = refundAgg._sum.amount || 0;
+  const refunds = refundAppliedAgg._sum.amount || 0;
+  const refundsTotal = refundTotalAgg._sum.amount || 0;
   const reserved = payoutReservedAgg._sum.amount || 0;
   const paidOut = payoutPaidAgg._sum.amount || 0;
 
@@ -1777,6 +2023,7 @@ async function calcFinanceSummary(shopId) {
     // Backward compatible
     grossRevenue,
     refunds,
+    refundsTotal,
     netRevenue,
     reserved,
     paidOut,
@@ -1854,9 +2101,9 @@ router.get(
     const from = req.query.from ? new Date(req.query.from) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const to = req.query.to ? new Date(req.query.to) : new Date();
     const orders = await prisma.order.findMany({ where: { shopId: shop.id, createdAt: { gte: from, lte: to } } });
-    const revenue = orders
-      .filter((o) => o.status !== "CANCELLED")
-      .reduce((sum, o) => sum + o.total, 0);
+    // Keep analytics consistent with finance: only count orders that are considered
+    // valid sales (exclude fully reversed orders like RETURN_RECEIVED / REFUNDED).
+    const revenue = orders.filter((o) => REVENUE_ORDER_STATUSES.includes(o.status)).reduce((sum, o) => sum + o.total, 0);
     res.json({
       success: true,
       data: {
@@ -1904,23 +2151,43 @@ router.get(
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { id: true, email: true, username: true, name: true } },
-        order: { select: { id: true, code: true, status: true, total: true, createdAt: true, deliveredAt: true } },
+        // NOTE: Order model does NOT have deliveredAt; it belongs to Shipment.
+        // We include shipment.deliveredAt then expose it as order.deliveredAt in the response for FE compatibility.
+        order: {
+          select: {
+            id: true,
+            code: true,
+            status: true,
+            total: true,
+            createdAt: true,
+            shipment: { select: { deliveredAt: true } },
+          },
+        },
       },
       take: 200,
     });
-    const withMedia = (list || []).map((d) => ({
-      ...d,
-      mediaUrls: d.mediaUrlsJson
+    const withMedia = (list || []).map((d) => {
+      const mediaUrls = d.mediaUrlsJson
         ? (() => {
-            try {
-              const arr = JSON.parse(d.mediaUrlsJson);
-              return Array.isArray(arr) ? arr : [];
-            } catch {
-              return [];
-            }
-          })()
-        : [],
-    }));
+          try {
+            const arr = JSON.parse(d.mediaUrlsJson);
+            return Array.isArray(arr) ? arr : [];
+          } catch {
+            return [];
+          }
+        })()
+        : [];
+
+      const deliveredAt = d.order?.shipment?.deliveredAt || null;
+      const order = d.order
+        ? (() => {
+          const { shipment, ...rest } = d.order;
+          return { ...rest, deliveredAt };
+        })()
+        : null;
+
+      return { ...d, order, mediaUrls };
+    });
     res.json({ success: true, data: withMedia });
   })
 );

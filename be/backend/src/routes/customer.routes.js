@@ -8,7 +8,7 @@ const { httpError } = require("../utils/httpError");
 const { z } = require("zod");
 const { imageUpload } = require("../middleware/upload.middleware");
 
-const { createPaymentForOrder } = require("../services/payment.service");
+const { createPaymentForOrder, captureCodPaymentIfNeeded } = require("../services/payment.service");
 const { notify } = require("../services/notification.service");
 const { recalcProductRating, recalcShopRating } = require("../services/rating.service");
 const {
@@ -653,8 +653,8 @@ async function quoteShippingOptionsForGroup({ shopId, subtotal, items, address }
             description: "2-4 ngày (mặc định)",
             isActive: true,
             baseFee: 20000,
-            feePerItem: 1000,
-            feePerKg: 5000,
+            feePerItem: 0,
+            feePerKg: 0,
             freeShippingOver: 500000,
             minDays: 2,
             maxDays: 4,
@@ -669,8 +669,8 @@ async function quoteShippingOptionsForGroup({ shopId, subtotal, items, address }
             description: "1-2 ngày (mặc định)",
             isActive: true,
             baseFee: 35000,
-            feePerItem: 1500,
-            feePerKg: 7000,
+            feePerItem: 0,
+            feePerKg: 0,
             freeShippingOver: null,
             minDays: 1,
             maxDays: 2,
@@ -697,12 +697,7 @@ async function quoteShippingOptionsForGroup({ shopId, subtotal, items, address }
     const zoneOk = zones.length === 0 || zones.some((z) => zoneMatches(z, address));
     if (!zoneOk) continue;
 
-    if (cfg.maxWeightGram != null && metrics.totalWeightGram > cfg.maxWeightGram) continue;
-
-    let fee =
-      (cfg.baseFee || 0) +
-      (cfg.feePerItem || 0) * metrics.itemCount +
-      (cfg.feePerKg || 0) * metrics.weightKg;
+    let fee = cfg.baseFee || 0;
 
     if (cfg.freeShippingOver != null && subtotal >= cfg.freeShippingOver) {
       fee = 0;
@@ -718,11 +713,7 @@ async function quoteShippingOptionsForGroup({ shopId, subtotal, items, address }
       description: cfg.description || null,
       fee,
       eta: { minDays: cfg.minDays, maxDays: cfg.maxDays },
-      constraints: {
-        maxWeightGram: cfg.maxWeightGram ?? null,
-        codSupported: cfg.codSupported ?? true,
-        zones,
-      },
+      constraints: { zones },
     });
   }
 
@@ -1311,14 +1302,8 @@ router.patch(
       weightGram: it.weightGram,
     }));
     const metrics = calcGroupMetrics(groupItems);
-    if (cfg.maxWeightGram != null && metrics.totalWeightGram > cfg.maxWeightGram) {
-      throw httpError(400, "Đơn vượt quá giới hạn khối lượng của phương thức vận chuyển");
-    }
 
-    let fee =
-      (cfg.baseFee || 0) +
-      (cfg.feePerItem || 0) * metrics.itemCount +
-      (cfg.feePerKg || 0) * metrics.weightKg;
+    let fee = cfg.baseFee || 0;
 
     if (cfg.freeShippingOver != null && group.subtotal >= cfg.freeShippingOver) fee = 0;
     fee = Math.max(0, fee);
@@ -1904,10 +1889,10 @@ router.post(
         await notify(
           userId,
           {
-          type: "ORDER_CONFIRM",
-          title: `Xác nhận đơn ${order.code}`,
-          body: `Đơn hàng đã được tạo thành công. Tổng: ${total} VND`,
-          data: { orderCode: order.code },
+            type: "ORDER_CONFIRM",
+            title: `Xác nhận đơn ${order.code}`,
+            body: `Đơn hàng đã được tạo thành công. Tổng: ${total} VND`,
+            data: { orderCode: order.code },
           },
           tx
         );
@@ -1932,19 +1917,6 @@ function deriveGroupStatus(statuses) {
   const has = (s) => statuses.includes(s);
   const some = (arr) => arr.some((s) => has(s));
 
-<<<<<<< HEAD
-  if (statuses.every((s) => s === "COMPLETED")) return "COMPLETED";
-  if (has("DISPUTED")) return "DISPUTED";
-  if (has("REFUNDED")) return "REFUNDED";
-
-  if (some(["RETURN_REQUESTED", "RETURN_APPROVED", "RETURN_RECEIVED", "RETURNED"])) {
-    if (has("RETURN_REQUESTED")) return "RETURN_REQUESTED";
-    if (has("RETURN_APPROVED")) return "RETURN_APPROVED";
-    if (has("RETURN_RECEIVED")) return "RETURN_RECEIVED";
-    return "RETURNED";
-  }
-
-=======
   // If all the same, return that
   if (statuses.every((s) => s === statuses[0])) return statuses[0];
 
@@ -1962,31 +1934,21 @@ function deriveGroupStatus(statuses) {
   }
 
   // Cancellation flow
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
   if (some(["CANCEL_REQUESTED", "CANCELLED"])) {
     if (has("CANCEL_REQUESTED")) return "CANCEL_REQUESTED";
     return "CANCELLED";
   }
 
-<<<<<<< HEAD
-  if (has("DELIVERED")) return "DELIVERED";
-  if (has("SHIPPED")) return "SHIPPED";
-  if (has("PACKED")) return "PACKED";
-=======
   // Fulfillment flow
   if (has("DELIVERED")) return "DELIVERED";
   if (has("SHIPPED")) return "SHIPPED";
   if (has("PACKING")) return "PACKING";
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
   if (has("CONFIRMED")) return "CONFIRMED";
   if (has("PENDING_PAYMENT")) return "PENDING_PAYMENT";
   return "PLACED";
 }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> cf58fbf676831dda94e320c756cb5efb3f44fada
 router.get(
   "/order-groups",
   asyncHandler(async (req, res) => {
@@ -2113,9 +2075,9 @@ router.get(
     const statusParam = String(req.query.status || "").trim();
     const statusList = statusParam
       ? statusParam
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
       : [];
 
     const returnStatuses = [
@@ -2132,12 +2094,12 @@ router.get(
       userId: req.user.sub,
       ...(statusList.length
         ? {
-            status: {
-              in: statusList.includes("RETURN")
-                ? returnStatuses
-                : statusList,
-            },
-          }
+          status: {
+            in: statusList.includes("RETURN")
+              ? returnStatuses
+              : statusList,
+          },
+        }
         : {}),
     };
 
@@ -2174,9 +2136,9 @@ router.get(
 
     const reviews = productIds.length
       ? await prisma.review.findMany({
-          where: { userId: req.user.sub, productId: { in: productIds } },
-          select: { id: true, productId: true },
-        })
+        where: { userId: req.user.sub, productId: { in: productIds } },
+        select: { id: true, productId: true },
+      })
       : [];
     const reviewedSet = new Set(reviews.map((r) => r.productId));
 
@@ -2251,10 +2213,15 @@ router.post(
     const code = req.params.code;
     const order = await prisma.order.findFirst({ where: { code, userId: req.user.sub } });
     if (!order) throw httpError(404, "Không tìm thấy đơn hàng");
-    if (!["DELIVERED","SHIPPED","DISPUTED"].includes(order.status)) {
+    if (!["DELIVERED", "SHIPPED", "DISPUTED"].includes(order.status)) {
       throw httpError(400, "Chỉ có thể xác nhận khi đơn đang giao/đã giao");
     }
-    const updated = await prisma.order.update({ where: { id: order.id }, data: { status: "DELIVERED" } });
+    // If the order was COD, consider it paid at delivery time (capture COD payment).
+    // This prevents refund flows from failing just because COD was recorded as UNPAID at checkout.
+    const updated = await prisma.$transaction(async (tx) => {
+      await captureCodPaymentIfNeeded(order.id, tx);
+      return tx.order.update({ where: { id: order.id }, data: { status: "DELIVERED" } });
+    });
     res.json({ success: true, message: "Đã xác nhận nhận hàng", data: updated });
   })
 );
@@ -2286,11 +2253,11 @@ router.post(
       "DISPUTED",
     ];
     if (blockedStatuses.includes(order.status)) {
-      throw httpError(400, "Đơn đã vào giai đoạn không thể hủy. Vui lòng dùng Hoàn/Đổi nếu cần." );
+      throw httpError(400, "Đơn đã vào giai đoạn không thể hủy. Vui lòng dùng Hoàn/Đổi nếu cần.");
     }
 
     const existing = await prisma.cancelRequest.findUnique({ where: { orderId: order.id } });
-    if (existing) throw httpError(409, "Đã gửi yêu cầu hủy" );
+    if (existing) throw httpError(409, "Đã gửi yêu cầu hủy");
 
     // Free cancel stage
     if (["PENDING_PAYMENT", "PLACED"].includes(order.status)) {
@@ -2331,7 +2298,7 @@ router.post(
       return res.status(201).json({ success: true, message: "Đã gửi yêu cầu hủy (cần người bán xác nhận)", data: created[0] });
     }
 
-    throw httpError(400, "Trạng thái đơn không hỗ trợ huỷ" );
+    throw httpError(400, "Trạng thái đơn không hỗ trợ huỷ");
   })
 );
 
@@ -2350,12 +2317,12 @@ router.post(
     const body = returnSchema.parse(req.body);
     const order = await prisma.order.findFirst({ where: { code, userId: req.user.sub } });
     if (!order) throw httpError(404, "Không tìm thấy đơn hàng");
-    if (!['DELIVERED','DISPUTED'].includes(order.status)) {
-      throw httpError(400, "Chỉ có thể yêu cầu hoàn/đổi sau khi đã giao" );
+    if (!["DELIVERED", "COMPLETED", "DISPUTED"].includes(order.status)) {
+      throw httpError(400, "Chỉ có thể yêu cầu hoàn/đổi sau khi đã giao");
     }
 
     const existing = await prisma.returnRequest.findUnique({ where: { orderId: order.id } });
-    if (existing) throw httpError(409, "Đã có yêu cầu hoàn/đổi" );
+    if (existing) throw httpError(409, "Đã có yêu cầu hoàn/đổi");
 
     const created = await prisma.$transaction([
       prisma.returnRequest.create({
@@ -2369,6 +2336,22 @@ router.post(
       }),
       prisma.order.update({ where: { id: order.id }, data: { status: "RETURN_REQUESTED" } }),
     ]);
+
+    // Notify seller (shop owner) so they can process the request in Seller Center
+    try {
+      const shop = await prisma.shop.findUnique({ where: { id: order.shopId }, select: { ownerId: true, name: true } });
+      if (shop?.ownerId) {
+        await notify(shop.ownerId, {
+          type: "REFUND_REQUESTED",
+          title: `Yêu cầu hoàn tiền: ${order.code}`,
+          body: body.reason || "Khách hàng yêu cầu hoàn tiền (không trả hàng)",
+          data: { orderCode: order.code },
+        });
+      }
+    } catch {
+      // ignore notification failures
+    }
+
 
     res.status(201).json({ success: true, message: "Đã gửi yêu cầu hoàn/đổi", data: created[0] });
   })
@@ -2388,7 +2371,7 @@ router.post(
       throw httpError(400, "Đơn đã huỷ. Nếu đã thanh toán, hệ thống sẽ tự hoàn/CS sẽ liên hệ.");
     }
     // Shopee-like: refund-only request is allowed after delivered. Before that use Cancel/Cancel Request.
-    if (!['DELIVERED','DISPUTED'].includes(order.status)) {
+    if (!["DELIVERED", "COMPLETED", "DISPUTED"].includes(order.status)) {
       throw httpError(400, "Chỉ có thể yêu cầu hoàn tiền sau khi đã giao hàng");
     }
     const rr = await prisma.returnRequest.findUnique({ where: { orderId: order.id } });
@@ -2396,7 +2379,7 @@ router.post(
       throw httpError(409, "Đơn đã có yêu cầu hoàn/đổi. Vui lòng theo dõi trong mục Trả hàng/Hoàn tiền.");
     }
     const existing = await prisma.refund.findUnique({ where: { orderId: order.id } });
-    if (existing) throw httpError(409, "Đã có yêu cầu hoàn tiền" );
+    if (existing) throw httpError(409, "Đã có yêu cầu hoàn tiền");
 
     const created = await prisma.$transaction([
       prisma.refund.create({
@@ -2410,15 +2393,37 @@ router.post(
       prisma.order.update({ where: { id: order.id }, data: { status: "REFUND_REQUESTED" } }),
     ]);
 
+    // Notify seller (shop owner)
+    try {
+      const shop = await prisma.shop.findUnique({ where: { id: order.shopId }, select: { ownerId: true, name: true } });
+      if (shop?.ownerId) {
+        await notify(shop.ownerId, {
+          type: "REFUND_REQUESTED",
+          title: `Yêu cầu hoàn tiền: ${order.code}`,
+          body: body.reason || "Khách hàng yêu cầu hoàn tiền (không trả hàng)",
+          data: { orderCode: order.code },
+        });
+      }
+    } catch {
+      // ignore notification errors
+    }
+
+
     res.status(201).json({ success: true, message: "Đã gửi yêu cầu hoàn tiền", data: created[0] });
   })
 );
 
 // Dispute
+// Public image url can be an absolute URL (http/https) or a local upload path (/uploads/..)
+const publicMediaUrlSchema = z.union([
+  z.string().url(),
+  z.string().regex(/^\/uploads\//),
+]);
+
 const disputeSchema = z.object({
   type: z.string().optional(),
   message: z.string().min(10).max(2000),
-  mediaUrls: z.array(z.string().url()).max(6).optional(),
+  mediaUrls: z.array(publicMediaUrlSchema).max(6).optional(),
 });
 
 // Create dispute for an order (customer)
@@ -2428,7 +2433,10 @@ router.post(
     const code = req.params.code;
     const body = disputeSchema.parse(req.body);
 
-    const order = await prisma.order.findFirst({ where: { code, userId: req.user.sub } });
+    const order = await prisma.order.findFirst({
+      where: { code, userId: req.user.sub },
+      include: { shipment: { select: { deliveredAt: true } } },
+    });
     if (!order) throw httpError(404, "Không tìm thấy đơn hàng");
 
     // Only allow disputes after delivery / within return-refund flows (Shopee-like)
@@ -2451,8 +2459,9 @@ router.post(
 
     // Time window: 15 days after deliveredAt (if available)
     const DISPUTE_WINDOW_DAYS = 15;
-    if (order.deliveredAt) {
-      const days = (Date.now() - new Date(order.deliveredAt).getTime()) / (24 * 60 * 60 * 1000);
+    const deliveredAt = order.shipment?.deliveredAt;
+    if (deliveredAt) {
+      const days = (Date.now() - new Date(deliveredAt).getTime()) / (24 * 60 * 60 * 1000);
       if (days > DISPUTE_WINDOW_DAYS) {
         throw httpError(400, `Đã quá hạn khiếu nại (${DISPUTE_WINDOW_DAYS} ngày sau khi giao).`);
       }
@@ -2492,24 +2501,35 @@ router.get(
             status: true,
             total: true,
             createdAt: true,
-            deliveredAt: true,
+            shipment: { select: { deliveredAt: true } },
             shop: { select: { id: true, name: true, slug: true, logoUrl: true } },
           },
         },
       },
       take: 200,
     });
-    const withMedia = (list || []).map((d) => ({
-      ...d,
-      mediaUrls: d.mediaUrlsJson ? (() => {
-        try {
-          const arr = JSON.parse(d.mediaUrlsJson);
-          return Array.isArray(arr) ? arr : [];
-        } catch {
-          return [];
-        }
-      })() : [],
-    }));
+    const withMedia = (list || []).map((d) => {
+      const mediaUrls = d.mediaUrlsJson
+        ? (() => {
+          try {
+            const arr = JSON.parse(d.mediaUrlsJson);
+            return Array.isArray(arr) ? arr : [];
+          } catch {
+            return [];
+          }
+        })()
+        : [];
+
+      const deliveredAt = d.order?.shipment?.deliveredAt || null;
+      const order = d.order
+        ? (() => {
+          const { shipment, ...rest } = d.order;
+          return { ...rest, deliveredAt };
+        })()
+        : null;
+
+      return { ...d, order, mediaUrls };
+    });
     res.json({ success: true, data: withMedia });
   })
 );
@@ -2627,6 +2647,8 @@ router.post(
             id: true,
             name: true,
             slug: true,
+            price: true,
+            compareAtPrice: true,
             thumbnailUrl: true,
             status: true,
             shop: { select: { id: true, name: true, slug: true } },
@@ -2639,7 +2661,7 @@ router.post(
       skuId: s.id,
       skuCode: s.skuCode,
       skuName: s.name,
-      price: s.price != null ? s.price : s.product.price,
+      price: s.price == null || Number(s.price) <= 0 ? s.product.price : s.price,
       stock: s.stock,
       status: s.status,
       productId: s.productId,
@@ -2657,7 +2679,7 @@ router.post(
 const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   content: z.string().max(2000).optional(),
-  mediaUrls: z.array(z.string().url()).optional(),
+  mediaUrls: z.array(publicMediaUrlSchema).max(6).optional(),
 });
 
 
@@ -2695,13 +2717,13 @@ router.get(
       ...r,
       mediaUrls: r.mediaUrlsJson
         ? (() => {
-            try {
-              const arr = JSON.parse(r.mediaUrlsJson);
-              return Array.isArray(arr) ? arr : [];
-            } catch {
-              return [];
-            }
-          })()
+          try {
+            const arr = JSON.parse(r.mediaUrlsJson);
+            return Array.isArray(arr) ? arr : [];
+          } catch {
+            return [];
+          }
+        })()
         : [],
     }));
 
@@ -2723,7 +2745,7 @@ router.post(
         order: { userId: req.user.sub, status: { in: ["DELIVERED", "COMPLETED"] } },
       },
     });
-    if (!bought) throw httpError(400, "Bạn cần mua và nhận hàng trước khi đánh giá" );
+    if (!bought) throw httpError(400, "Bạn cần mua và nhận hàng trước khi đánh giá");
 
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) throw httpError(404, "Không tìm thấy sản phẩm");
@@ -2766,12 +2788,12 @@ router.put(
     const review = await prisma.review.findFirst({ where: { id, userId: req.user.sub } });
     if (!review) throw httpError(404, "Không tìm thấy đánh giá");
     if (Number(review.editCount || 0) >= 1) {
-      throw httpError(400, "Bạn chỉ được chỉnh sửa đánh giá 1 lần" );
+      throw httpError(400, "Bạn chỉ được chỉnh sửa đánh giá 1 lần");
     }
     // hạn sửa: 7 ngày
     const maxEdit = 7 * 24 * 60 * 60 * 1000;
     if (Date.now() - review.createdAt.getTime() > maxEdit) {
-      throw httpError(400, "Đã quá hạn sửa đánh giá" );
+      throw httpError(400, "Đã quá hạn sửa đánh giá");
     }
     const updated = await prisma.review.update({
       where: { id },
@@ -2800,7 +2822,7 @@ router.delete(
     if (!review) throw httpError(404, "Không tìm thấy đánh giá");
     const maxEdit = 7 * 24 * 60 * 60 * 1000;
     if (Date.now() - review.createdAt.getTime() > maxEdit) {
-      throw httpError(400, "Đã quá hạn xoá đánh giá" );
+      throw httpError(400, "Đã quá hạn xoá đánh giá");
     }
     await prisma.review.delete({ where: { id } });
 
@@ -2822,9 +2844,9 @@ router.post(
     const review = await prisma.review.findFirst({ where: { id: reviewId, userId: req.user.sub } });
     if (!review) throw httpError(404, "Không tìm thấy đánh giá");
     const hasSellerReply = await prisma.reviewReply.findFirst({ where: { reviewId } });
-    if (!hasSellerReply) throw httpError(400, "Người bán chưa phản hồi, bạn chưa thể gửi phản hồi thêm" );
+    if (!hasSellerReply) throw httpError(400, "Người bán chưa phản hồi, bạn chưa thể gửi phản hồi thêm");
     const existing = await prisma.reviewBuyerFollowUp.findUnique({ where: { reviewId } });
-    if (existing) throw httpError(409, "Bạn chỉ được phản hồi thêm 1 lần" );
+    if (existing) throw httpError(409, "Bạn chỉ được phản hồi thêm 1 lần");
 
     const created = await prisma.reviewBuyerFollowUp.create({
       data: { reviewId, userId: req.user.sub, content: body.content },

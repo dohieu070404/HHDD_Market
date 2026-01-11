@@ -85,20 +85,103 @@ router.get(
           .slice(0, 8)
       ),
       // Top shops: ưu tiên shop có rating tốt
-      prisma.shop.findMany({
-        where: { status: "ACTIVE" },
-        orderBy: [{ ratingAvg: "desc" }, { ratingCount: "desc" }, { createdAt: "desc" }],
-        take: 8,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          logoUrl: true,
-          description: true,
-          ratingAvg: true,
-          ratingCount: true,
-        },
-      }),
+      // NOTE: Không dựa trực tiếp vào shop.ratingAvg/ratingCount vì seed/demo có thể chỉ set ở Product.
+      // Tính rating shop dựa trên rating của các sản phẩm (weighted by ratingCount) để đồng bộ với /public/shops/:slug.
+      (async () => {
+        const shops = await prisma.shop.findMany({
+          where: { status: "ACTIVE" },
+          // Lấy rộng hơn để có đủ candidates rồi xếp hạng ở JS
+          take: 60,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            description: true,
+            // fallback (nếu shop không có sản phẩm/ratings)
+            ratingAvg: true,
+            ratingCount: true,
+            createdAt: true,
+          },
+        });
+
+        const shopIds = (shops || []).map((s) => s.id);
+        if (!shopIds.length) return [];
+
+        const products = await prisma.product.findMany({
+          where: { status: "ACTIVE", shopId: { in: shopIds } },
+          select: { shopId: true, ratingAvg: true, ratingCount: true, soldCount: true },
+        });
+
+        // Aggregate per shop
+        const agg = new Map();
+        for (const p of products || []) {
+          const sid = p.shopId;
+          const rc = Number(p.ratingCount || 0);
+          const ra = Number(p.ratingAvg || 0);
+          const sold = Number(p.soldCount || 0);
+          if (!agg.has(sid)) agg.set(sid, { ratingCount: 0, ratingSum: 0, soldSum: 0 });
+          const a = agg.get(sid);
+          a.ratingCount += rc;
+          a.ratingSum += ra * rc;
+          a.soldSum += sold;
+        }
+
+        // Global mean rating (for Bayesian score)
+        let globalCount = 0;
+        let globalSum = 0;
+        for (const v of agg.values()) {
+          globalCount += Number(v.ratingCount || 0);
+          globalSum += Number(v.ratingSum || 0);
+        }
+        const C = globalCount > 0 ? globalSum / globalCount : 0;
+        const m = 20; // prior weight (20 ratings)
+
+        const enriched = (shops || []).map((s) => {
+          const a = agg.get(s.id);
+          const computedCount = Number(a?.ratingCount || 0);
+          const computedAvg =
+            computedCount > 0 ? Math.round(((a.ratingSum || 0) / computedCount) * 10) / 10 : 0;
+
+          // Prefer computed stats; fallback to shop fields if no product ratings.
+          const ratingCount = computedCount > 0 ? computedCount : Number(s.ratingCount || 0);
+          const ratingAvg = computedCount > 0 ? computedAvg : Number(s.ratingAvg || 0);
+          const soldSum = Number(a?.soldSum || 0);
+
+          // Bayesian average to avoid small-sample bias
+          const bayes = ratingCount > 0 ? (ratingCount * ratingAvg + m * C) / (ratingCount + m) : 0;
+          const score = bayes * 1.0 + Math.log1p(ratingCount) * 0.25 + Math.log1p(soldSum) * 0.2;
+
+          return {
+            id: s.id,
+            name: s.name,
+            slug: s.slug,
+            logoUrl: s.logoUrl,
+            description: s.description,
+            ratingAvg,
+            ratingCount,
+            _score: score,
+            _createdAt: s.createdAt,
+          };
+        });
+
+        const rated = enriched.filter((x) => Number(x.ratingCount || 0) > 0);
+        const base = rated.length ? rated : enriched;
+
+        return base
+          .sort((a, b) => {
+            const ds = (b._score || 0) - (a._score || 0);
+            if (ds !== 0) return ds;
+            const da = (b.ratingAvg || 0) - (a.ratingAvg || 0);
+            if (da !== 0) return da;
+            const dc = (b.ratingCount || 0) - (a.ratingCount || 0);
+            if (dc !== 0) return dc;
+            const dt = (b._createdAt?.getTime?.() || 0) - (a._createdAt?.getTime?.() || 0);
+            return dt;
+          })
+          .slice(0, 8)
+          .map(({ _score, _createdAt, ...rest }) => rest);
+      })(),
     ]);
 
     res.json({ success: true, data: { categories, featured, flashSale, topShops } });
@@ -109,9 +192,18 @@ router.get(
 router.get(
   "/categories",
   asyncHandler(async (req, res) => {
+    // IMPORTANT: return a real tree (root categories + children).
+    // Previous implementation returned *all* categories (including children) and also included
+    // their children again. This caused duplicated items in the UI filter.
     const categories = await prisma.category.findMany({
+      where: { parentId: null },
       orderBy: { name: "asc" },
-      include: { children: true },
+      include: {
+        children: {
+          orderBy: { name: "asc" },
+          include: { children: { orderBy: { name: "asc" } } },
+        },
+      },
     });
     res.json({ success: true, data: categories });
   })
